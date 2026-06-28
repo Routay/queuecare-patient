@@ -21,7 +21,7 @@ class LocalDatabase {
   }
 
   Future _createDB(Database db, int version) async {
-    const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
+    const idType = 'TEXT PRIMARY KEY';
     const textType = 'TEXT NOT NULL';
     const textNullableType = 'TEXT';
     const integerType = 'INTEGER NOT NULL';

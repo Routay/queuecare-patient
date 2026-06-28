@@ -6,6 +6,7 @@ import 'package:queuecare_patient/features/queue/queue_screen.dart';
 import 'package:queuecare_patient/features/pharmacy/pharmacy_screen.dart';
 import 'package:queuecare_patient/features/settings/settings_screen.dart';
 import 'package:queuecare_patient/features/appointments/appointments_screen.dart';
+import 'package:queuecare_patient/features/prescriptions/prescriptions_screen.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -220,19 +221,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: AppTheme.success,
                             onTap: () => setState(() => _currentIndex = 2),
                           ),
-                          if (!widget.isGuest)
-                            _buildActionCard(
-                              context,
-                              title: 'Rendez-vous',
-                              icon: Icons.calendar_month_outlined,
-                              color: AppTheme.warning,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const AppointmentsScreen()),
-                                );
-                              },
-                            ),
+                            if (!widget.isGuest)
+                              _buildActionCard(
+                                context,
+                                title: 'Ordonnances',
+                                icon: Icons.receipt_long_outlined,
+                                color: AppTheme.warning,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const PrescriptionsScreen()),
+                                  );
+                                },
+                              ),
                           _buildActionCard(
                             context,
                             title: loc.get('settings'),
