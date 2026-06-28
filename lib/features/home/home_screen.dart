@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
+import 'package:queuecare_patient/core/widgets/glass_container.dart';
 import 'package:queuecare_patient/features/queue/queue_screen.dart';
 import 'package:queuecare_patient/features/pharmacy/pharmacy_screen.dart';
 import 'package:queuecare_patient/features/settings/settings_screen.dart';
@@ -147,80 +148,112 @@ class _HomeScreenState extends State<HomeScreen> {
     return Builder(
       builder: (context) {
         final loc = AppLocalizations.of(context)!;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Scaffold(
+          extendBodyBehindAppBar: true,
           appBar: AppBar(
             title: Text(loc.get('home')),
             backgroundColor: Colors.transparent,
             elevation: 0,
             actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications_none),
-                onPressed: () {},
-                color: AppTheme.primaryTeal,
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryTeal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {},
+                  color: AppTheme.primaryTeal,
+                ),
               )
             ],
           ),
-          body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.isGuest ? loc.get('occasional_patient') : loc.get('welcome_back'),
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
-                ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    children: [
-                      _buildActionCard(
-                        context,
-                        title: loc.get('queue'),
-                        icon: Icons.confirmation_number,
-                        color: AppTheme.primaryTeal,
-                        onTap: () => setState(() => _currentIndex = 1),
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF0F172A), const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                    : [AppTheme.slateLight, Colors.white, AppTheme.sageLight.withOpacity(0.3)],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.isGuest ? loc.get('occasional_patient') : loc.get('welcome_back'),
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Que souhaitez-vous faire aujourd\'hui ?',
+                      style: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.black45,
+                        fontSize: 15,
                       ),
-                      _buildActionCard(
-                        context,
-                        title: loc.get('pharmacy'),
-                        icon: Icons.local_pharmacy,
-                        color: AppTheme.success,
-                        onTap: () => setState(() => _currentIndex = 2),
-                      ),
-                      if (!widget.isGuest)
-                        _buildActionCard(
-                          context,
-                          title: 'Rendez-vous',
-                          icon: Icons.calendar_month,
-                          color: AppTheme.warning,
-                          onTap: () {
-                            Navigator.push(
+                    ),
+                    const SizedBox(height: 32),
+                    Expanded(
+                      child: GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        children: [
+                          _buildActionCard(
+                            context,
+                            title: loc.get('queue'),
+                            icon: Icons.confirmation_number_outlined,
+                            color: AppTheme.primaryTeal,
+                            onTap: () => setState(() => _currentIndex = 1),
+                          ),
+                          _buildActionCard(
+                            context,
+                            title: loc.get('pharmacy'),
+                            icon: Icons.local_pharmacy_outlined,
+                            color: AppTheme.success,
+                            onTap: () => setState(() => _currentIndex = 2),
+                          ),
+                          if (!widget.isGuest)
+                            _buildActionCard(
                               context,
-                              MaterialPageRoute(builder: (_) => const AppointmentsScreen()),
-                            );
-                          },
-                        ),
-                      _buildActionCard(
-                        context,
-                        title: loc.get('settings'),
-                        icon: Icons.settings,
-                        color: Colors.grey,
-                        onTap: () => setState(() => _currentIndex = 3),
+                              title: 'Rendez-vous',
+                              icon: Icons.calendar_month_outlined,
+                              color: AppTheme.warning,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const AppointmentsScreen()),
+                                );
+                              },
+                            ),
+                          _buildActionCard(
+                            context,
+                            title: loc.get('settings'),
+                            icon: Icons.settings_outlined,
+                            color: AppTheme.accentPurple,
+                            onTap: () => setState(() => _currentIndex = 3),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           floatingActionButton: widget.isGuest ? FloatingActionButton.extended(
             onPressed: () => _showQRScanner(context),
-            icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Scanner QR'),
+            icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+            label: const Text('Scanner QR', style: TextStyle(fontWeight: FontWeight.w700)),
             backgroundColor: AppTheme.primaryTeal,
+            elevation: 8,
           ) : null,
         );
       }
@@ -230,37 +263,39 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildActionCard(BuildContext context, {required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
-        ),
+      child: GlassContainer(
+        blur: isDark ? 20 : 10,
+        opacity: isDark ? 0.08 : 0.7,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withOpacity(isDark ? 0.25 : 0.15), width: 1.5),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withOpacity(0.12),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.25),
+                    blurRadius: 20,
+                    spreadRadius: -5,
+                  )
+                ],
               ),
-              child: Icon(icon, size: 40, color: color),
+              child: Icon(icon, size: 36, color: color),
             ),
             const SizedBox(height: 16),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

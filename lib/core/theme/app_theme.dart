@@ -4,12 +4,15 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   // Palette de couleurs Premium HSL
   static const Color primaryTeal = Color(0xFF0D9488); // Teal 600
+  static const Color primaryLight = Color(0xFF14B8A6);
+  static const Color accentPurple = Color(0xFF8B5CF6); // Violet pour effet wow
   static const Color sageLight = Color(0xFFE2E8F0);
-  static const Color slateDark = Color(0xFF1E293B); // Slate 800
+  static const Color slateDark = Color(0xFF0F172A); // Slate 900
   static const Color slateLight = Color(0xFFF8FAFC);
   static const Color danger = Color(0xFFEF4444);
   static const Color warning = Color(0xFFF59E0B);
   static const Color success = Color(0xFF10B981);
+  static const Color glassBorder = Color(0x33FFFFFF);
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -29,16 +32,18 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryTeal,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 4,
+          shadowColor: primaryTeal.withOpacity(0.4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16),
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.5),
         ),
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 2,
-        shadowColor: slateDark.withOpacity(0.1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
+        shadowColor: slateDark.withOpacity(0.08),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -77,16 +82,21 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryTeal,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 6,
+          shadowColor: primaryTeal.withOpacity(0.4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16),
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.5),
         ),
       ),
       cardTheme: CardThemeData(
-        color: const Color(0xFF0F172A),
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: const Color(0xFF1E293B),
+        elevation: 12,
+        shadowColor: Colors.black.withOpacity(0.4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: glassBorder, width: 1),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
