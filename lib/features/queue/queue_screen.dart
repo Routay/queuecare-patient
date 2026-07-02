@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/network/queue_socket.dart';
+import 'package:queuecare_patient/core/network/api_client.dart';
+import 'package:queuecare_patient/core/database/local_database.dart';
 import 'package:queuecare_patient/core/widgets/glass_container.dart';
+import 'package:queuecare_patient/core/utils/qr_scanner_utils.dart';
+import 'package:queuecare_patient/core/services/notification_service.dart';
 
 class QueueScreen extends StatefulWidget {
   final Map<String, dynamic>? initialTicket;
@@ -13,11 +17,14 @@ class QueueScreen extends StatefulWidget {
 }
 
 class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin {
-  int _currentPosition = 0;
+  // Position commence à 1 (1 = premier, 2 = deuxième, etc.)
+  int _currentPosition = 1;
   int _estimatedWaitTime = 0;
   String _ticketNumber = '--';
+  String? _ticketId;
   final QueueSocket _socket = QueueSocket();
   bool _isConnected = false;
+  bool _isPostponing = false;
   late AnimationController _pulseController;
   late AnimationController _bgWaveController;
   late AnimationController _numberAnimController;
@@ -25,6 +32,10 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    
+    // Demander la permission pour les notifications
+    NotificationService.instance.requestPermission();
+    
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -42,6 +53,15 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
     
     if (widget.initialTicket != null) {
       _setupFromTicket(widget.initialTicket!);
+    } else {
+      _loadTicketFromDb();
+    }
+  }
+
+  Future<void> _loadTicketFromDb() async {
+    final ticket = await LocalDatabase.instance.getActiveTicket();
+    if (ticket != null) {
+      _setupFromTicket(ticket);
     }
   }
 
@@ -56,23 +76,153 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
   void _setupFromTicket(Map<String, dynamic> ticket) {
     setState(() {
       _ticketNumber = ticket['ticketNumber'] ?? '--';
-      _currentPosition = ticket['position'] ?? 0;
+      // Position commence à 1: le serveur renvoie 0 = c'est votre tour, 1 = 1er en attente
+      // On affiche position + 1 pour que l'affichage commence à 1
+      final rawPosition = ticket['position'] ?? 0;
+      _currentPosition = rawPosition + 1; // 1-indexed display
       _estimatedWaitTime = ticket['estimatedWaitTime'] ?? 0;
+      _ticketId = ticket['id']?.toString();
       _isConnected = true;
     });
     _numberAnimController.forward(from: 0);
 
     final ticketId = ticket['id'];
     if (ticketId != null) {
-      _socket.connect(ticketId);
+      _socket.connect(ticketId.toString());
       _socket.stream.listen((data) {
         if (mounted && data['type'] == 'queue_update') {
+          final rawNewPosition = data['position'] ?? 0;
+          final newPosition = rawNewPosition + 1; // 1-indexed display
+          
+          // Notifications quand c'est bientôt le tour
+          if (newPosition <= 2 && _currentPosition > 2) {
+            NotificationService.instance.showNotification(
+              "Bientôt votre tour !", 
+              "Préparez-vous, vous êtes en ${newPosition == 1 ? '1ère' : '2ème'} position."
+            );
+          }
+          // Notification quand c'est le tour (position serveur = 0, display = 1)
+          if (rawNewPosition == 0 && (_currentPosition - 1) > 0) {
+            NotificationService.instance.showNotification(
+              "C'est votre tour !", 
+              "Veuillez vous diriger vers le bureau."
+            );
+          }
+
           setState(() {
-            _currentPosition = data['position'];
-            _estimatedWaitTime = data['estimatedWaitTime'];
+            _currentPosition = newPosition;
+            _estimatedWaitTime = data['estimatedWaitTime'] ?? 0;
           });
         }
       });
+    }
+  }
+
+  /// Reporter son passage : déplace le patient en dernière position
+  Future<void> _postponeTicket(AppLocalizations loc) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(loc.get('postpone_title')),
+        content: Text(loc.get('postpone_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc.get('cancel_button')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.warning,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(loc.get('confirm_postpone')),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true || _ticketId == null) return;
+    
+    setState(() => _isPostponing = true);
+    
+    try {
+      // Appel API pour repousser le ticket à la dernière position
+      final response = await ApiClient().dio.post(
+        '/queue/ticket/$_ticketId/postpone',
+      );
+      
+      if (mounted) {
+        if (response.statusCode == 200) {
+          final data = response.data;
+          setState(() {
+            final rawPosition = data['position'] ?? (_currentPosition - 1);
+            _currentPosition = rawPosition + 1;
+            _estimatedWaitTime = data['estimatedWaitTime'] ?? _estimatedWaitTime;
+            _isPostponing = false;
+          });
+          
+          // Mettre à jour la DB locale
+          await LocalDatabase.instance.saveActiveTicket({
+            'id': _ticketId,
+            'ticketNumber': _ticketNumber,
+            'position': _currentPosition - 1,
+            'estimatedWaitTime': _estimatedWaitTime,
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.get('postpone_success')),
+              backgroundColor: AppTheme.warning,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isPostponing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.get('postpone_error')),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Annuler le ticket et quitter la file
+  Future<void> _leaveQueue(AppLocalizations loc) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(loc.get('leave_queue_title')),
+        content: Text(loc.get('leave_queue_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc.get('cancel_button')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(loc.get('confirm_leave')),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm == true) {
+      await LocalDatabase.instance.clearTicket();
+      _socket.disconnect();
+      if (mounted) {
+        setState(() {
+          _isConnected = false;
+        });
+      }
     }
   }
 
@@ -93,6 +243,9 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
     if (!_isConnected) {
       return _buildEmptyState(context, loc, isDark);
     }
+
+    // Position serveur 0 = c'est votre tour (display position 1)
+    final isYourTurn = (_currentPosition - 1) == 0;
 
     return Scaffold(
       body: AnimatedBuilder(
@@ -123,7 +276,7 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
           );
         },
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -156,7 +309,7 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Suivi en temps réel',
+                          loc.get('realtime_tracking'),
                           style: TextStyle(
                             color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
                             fontSize: 13,
@@ -255,15 +408,15 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                             ),
                             const SizedBox(height: 24),
 
-                            // Stats row
+                            // Stats row — Position commence à 1
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _buildStatCard(
                                   _currentPosition.toString(), 
-                                  loc.get('people_waiting'),
-                                  AppTheme.warning,
-                                  Icons.people_outline,
+                                  loc.get('position_label'),
+                                  isYourTurn ? AppTheme.success : AppTheme.warning,
+                                  Icons.format_list_numbered,
                                   isDark,
                                 ),
                                 Container(
@@ -282,7 +435,7 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                                 _buildStatCard(
-                                  '$_estimatedWaitTime min', 
+                                  '${_estimatedWaitTime} ${loc.get('minutes')}', 
                                   loc.get('estimated_time'),
                                   AppTheme.success,
                                   Icons.timer_outlined,
@@ -297,10 +450,10 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                   },
                 ),
                 
-                const Spacer(),
+                const SizedBox(height: 24),
                 
-                // Alert: prepare ID
-                if (_currentPosition <= 2 && _currentPosition > 0)
+                // Alert: prepare ID (position 1 ou 2)
+                if (_currentPosition <= 2 && !isYourTurn)
                   Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(18),
@@ -343,9 +496,10 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                     ),
                   ),
                   
-                // Your turn banner
-                if (_currentPosition == 0)
+                // Your turn banner (position serveur == 0, display == 1)
+                if (isYourTurn)
                   Container(
+                    margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -374,22 +528,22 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                           child: const Icon(Icons.check_circle, color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 16),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "C'est votre tour !",
-                                style: TextStyle(
+                                loc.get('your_turn'),
+                                style: const TextStyle(
                                   color: Colors.white, 
                                   fontWeight: FontWeight.w800, 
                                   fontSize: 18,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                "Veuillez vous diriger vers le bureau.",
-                                style: TextStyle(
+                                loc.get('your_turn_subtitle'),
+                                style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -401,6 +555,48 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                       ],
                     ),
                   ),
+                
+                const SizedBox(height: 8),
+                
+                // --- Action Buttons ---
+                // Bouton Reporter mon passage (orange)
+                if (!isYourTurn)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: TextButton.icon(
+                      onPressed: _isPostponing ? null : () => _postponeTicket(loc),
+                      icon: _isPostponing 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.warning))
+                        : const Icon(Icons.low_priority_rounded, color: AppTheme.warning, size: 20),
+                      label: Text(
+                        loc.get('postpone'), 
+                        style: TextStyle(
+                          color: _isPostponing ? AppTheme.warning.withOpacity(0.5) : AppTheme.warning, 
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: AppTheme.warning.withOpacity(0.06),
+                      ),
+                    ),
+                  ),
+                
+                // Bouton Quitter la file (rouge)
+                TextButton.icon(
+                  onPressed: () => _leaveQueue(loc),
+                  icon: const Icon(Icons.exit_to_app_rounded, color: AppTheme.danger, size: 20),
+                  label: Text(
+                    loc.get('leave_queue'), 
+                    style: const TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w600),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: AppTheme.danger.withOpacity(0.05),
+                  ),
+                ),
               ],
             ),
           ),
@@ -475,7 +671,7 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
               ),
               const SizedBox(height: 28),
               Text(
-                "Aucun ticket actif",
+                loc.get('no_active_ticket'),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 22,
@@ -484,7 +680,7 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
               ),
               const SizedBox(height: 10),
               Text(
-                "Scannez le QR Code à l'hôpital\nou prenez un rendez-vous.",
+                loc.get('scan_qr_prompt'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
@@ -494,29 +690,40 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                 ),
               ),
               const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryTeal.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppTheme.primaryTeal.withOpacity(0.15),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.qr_code_scanner, color: AppTheme.primaryTeal, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Scanner un QR Code',
-                      style: TextStyle(
-                        color: AppTheme.primaryTeal,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  QRScannerUtils.showQRScannerDialog(
+                    context,
+                    onTicketScanned: (ticket) {
+                      _setupFromTicket(ticket);
+                    },
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryTeal.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.primaryTeal.withOpacity(0.15),
                     ),
-                  ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.qr_code_scanner, color: AppTheme.primaryTeal, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        loc.get('scan_qr_button'),
+                        style: TextStyle(
+                          color: AppTheme.primaryTeal,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

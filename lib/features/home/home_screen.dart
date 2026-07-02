@@ -9,6 +9,8 @@ import 'package:queuecare_patient/features/settings/settings_screen.dart';
 import 'package:queuecare_patient/features/appointments/appointments_screen.dart';
 import 'package:queuecare_patient/features/prescriptions/prescriptions_screen.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
+import 'package:queuecare_patient/core/database/local_database.dart';
+import 'package:queuecare_patient/core/utils/qr_scanner_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isGuest;
@@ -63,114 +65,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _showQRScanner(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: const EdgeInsets.all(0),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Faux fond de caméra
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.black87,
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.qr_code_scanner, size: 250, color: AppTheme.primaryTeal),
-                  SizedBox(height: 32),
-                  Text("Placez le code QR dans le cadre", style: TextStyle(color: Colors.white, fontSize: 18)),
-                ],
-              ),
-            ),
-            // Fermer
-            Positioned(
-              top: 50,
-              right: 20,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ),
-            // Bouton Simulation
-            Positioned(
-              bottom: 50,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  // Fermer la fausse caméra
-                  Navigator.pop(ctx);
-                  
-                  // Récupérer les départements dynamiquement
-                  List<String> departments = ["Consultation Générale", "Cardiologie", "Pédiatrie"];
-                  try {
-                    final deptsResponse = await ApiClient().dio.get('/queue/departments/list');
-                    if (deptsResponse.data is List) {
-                      departments = (deptsResponse.data as List).map((e) => e['name'].toString()).toList();
-                    }
-                  } catch (e) {
-                    // Fallback on defaults
-                  }
-
-                  if (!context.mounted) return;
-
-                  // Choisir le département
-                  String? selectedDept = await showDialog<String>(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return SimpleDialog(
-                        title: const Text('Choisir un service'),
-                        children: departments.map((dept) => SimpleDialogOption(
-                          onPressed: () => Navigator.pop(context, dept),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(dept, style: const TextStyle(fontSize: 16))
-                          ),
-                        )).toList(),
-                      );
-                    }
-                  );
-
-                  if (selectedDept == null) return;
-
-                  try {
-                    // Appel réel à l'API pour générer un ticket
-                    final response = await ApiClient().dio.post(
-                      '/queue/ticket',
-                      data: {'department': selectedDept}
-                    );
-                    
-                    if (context.mounted) {
-                      // Mettre à jour l'écran de file d'attente avec le vrai ticket
-                      setState(() {
-                        _pages[1] = QueueScreen(initialTicket: response.data);
-                        _currentIndex = 1;
-                      });
-                      
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Code scanné ! Nouveau ticket généré pour $selectedDept.')),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Erreur lors de la génération du ticket : $e'),
-                          backgroundColor: AppTheme.danger,
-                        ),
-                      );
-                    }
-                  }
-                },
-                icon: const Icon(Icons.check_circle),
-                label: const Text('Simuler Scan QR'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-              ),
-            )
-          ],
-        ),
-      ),
+    QRScannerUtils.showQRScannerDialog(
+      context,
+      onTicketScanned: (ticket) {
+        setState(() {
+          _pages[1] = QueueScreen(key: UniqueKey(), initialTicket: ticket);
+          _currentIndex = 1;
+        });
+      },
     );
   }
 
@@ -467,7 +369,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
