@@ -51,6 +51,33 @@ class QueueCareApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             
+            // Constrain width on desktop web for a premium mobile-like feel
+            builder: (context, child) {
+              final isDark = state.themeMode == ThemeMode.dark || 
+                (state.themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
+              
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF020617) : const Color(0xFFE2E8F0),
+                ),
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 450),
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.5 : 0.1),
+                          blurRadius: 50,
+                          spreadRadius: -10,
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  ),
+                ),
+              );
+            },
+            
             home: seenOnboarding ? const AuthScreen() : const OnboardingScreen(),
           );
         },

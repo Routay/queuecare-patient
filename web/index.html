@@ -1,38 +1,161 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="QueueCare Patient Portal - Gagnez du temps et suivez vos prescriptions médicales et files d'attente.">
+  <meta name="theme-color" content="#0D9488">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="queuecare_patient">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="QueueCare">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>queuecare_patient</title>
+  <title>QueueCare - Espace Patient</title>
   <link rel="manifest" href="manifest.json">
+  
+  <style>
+    body {
+      background-color: #F0FDFA;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #0A0F1E;
+      }
+    }
+
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .pulse-ring {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pulse-ring::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #0D9488;
+      border-radius: 50%;
+      animation: pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      opacity: 0.6;
+    }
+
+    .pulse-ring::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #0D9488;
+      border-radius: 50%;
+      animation: pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      animation-delay: 1s;
+      opacity: 0.6;
+    }
+
+    .logo-center {
+      position: relative;
+      z-index: 2;
+      width: 60px;
+      height: 60px;
+      background: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(13, 148, 136, 0.3);
+    }
+    
+    .logo-center svg {
+      width: 30px;
+      height: 30px;
+      fill: #0D9488;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.6);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    .loading-text {
+      margin-top: 30px;
+      color: #0D9488;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
 </head>
 <body>
+  <!-- Custom Loading Splash Screen -->
+  <div class="loader-container" id="splash-loader">
+    <div class="pulse-ring">
+      <div class="logo-center">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM10.5 17H8V14.5H5.5V12H8V9.5H10.5V12H13V14.5H10.5V17ZM15 13H18V11H15V13ZM15 17H18V15H15V17Z"/>
+        </svg>
+      </div>
+    </div>
+    <div class="loading-text">Chargement...</div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp().then(function() {
+              // Hide splash screen when flutter starts
+              document.getElementById('splash-loader').style.display = 'none';
+            });
+          });
+        }
+      });
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
