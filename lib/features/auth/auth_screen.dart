@@ -94,7 +94,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   children: [
                     // Logo avec effet glow
                     Container(
-                      padding: const EdgeInsets.all(24),
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
                         color: AppTheme.primaryTeal.withOpacity(0.15),
                         shape: BoxShape.circle,
@@ -106,10 +107,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                           )
                         ]
                       ),
-                      child: const Icon(
-                        Icons.health_and_safety_outlined,
-                        size: 80,
-                        color: AppTheme.primaryTeal,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/queuecare_logo.png',
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 32),

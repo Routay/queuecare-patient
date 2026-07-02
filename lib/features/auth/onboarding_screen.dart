@@ -11,7 +11,7 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerProviderStateMixin {
+class _OnboardingScreenState extends State<OnboardingScreen> with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   late AnimationController _bgAnimController;
@@ -20,20 +20,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     {
       "title": "Gagnez du temps",
       "description": "Prenez un ticket virtuel pour l'hôpital depuis chez vous et suivez la file d'attente en temps réel.",
-      "icon": Icons.timer_outlined,
-      "color": AppTheme.primaryLight,
+      "image": "assets/images/queue_illustration.png",
+      "color": AppTheme.primaryTeal,
+      "gradientColors": [const Color(0xFF0D9488), const Color(0xFF14B8A6)],
     },
     {
       "title": "Trouvez vos médicaments",
       "description": "Fini l'errance pharmaceutique. Géolocalisez les pharmacies de garde et vérifiez la disponibilité de vos prescriptions.",
-      "icon": Icons.medical_services_outlined,
-      "color": AppTheme.accentPurple,
+      "image": "assets/images/pharmacy_illustration.png",
+      "color": AppTheme.success,
+      "gradientColors": [const Color(0xFF059669), const Color(0xFF10B981)],
     },
     {
-      "title": "Accessible à tous",
-      "description": "Disponible en Français et en Wolof, avec un mode simplifié pour garantir que personne ne soit laissé pour compte.",
-      "icon": Icons.accessibility_new,
-      "color": AppTheme.warning,
+      "title": "La santé pour tous",
+      "description": "Accessible et intuitif, avec un mode simplifié pour garantir que personne ne soit laissé pour compte.",
+      "image": "assets/images/onboarding_medical.png",
+      "color": AppTheme.accentPurple,
+      "gradientColors": [const Color(0xFF7C3AED), const Color(0xFF8B5CF6)],
     },
   ];
 
@@ -84,17 +87,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
               return Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      isDark ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
-                      Color.lerp(
-                        AppTheme.primaryTeal.withOpacity(isDark ? 0.2 : 0.1),
-                        AppTheme.accentPurple.withOpacity(isDark ? 0.2 : 0.1),
-                        _bgAnimController.value,
-                      )!,
-                      isDark ? const Color(0xFF1E293B) : Colors.white,
-                    ],
+                    begin: Alignment(-1.0 + _bgAnimController.value * 0.3, -1.0),
+                    end: Alignment(1.0, 1.0 - _bgAnimController.value * 0.2),
+                    colors: isDark
+                        ? [
+                            const Color(0xFF0A0F1E),
+                            const Color(0xFF0F172A),
+                            Color.lerp(const Color(0xFF0F172A), const Color(0xFF0D3B35), _bgAnimController.value * 0.3)!,
+                            const Color(0xFF0A0F1E),
+                          ]
+                        : [
+                            const Color(0xFFF0FDFA), // teal-50
+                            Colors.white,
+                            Color.lerp(Colors.white, const Color(0xFFE0F2FE), _bgAnimController.value * 0.5)!, // sky-100
+                            const Color(0xFFF8FAFC),
+                          ],
+                    stops: const [0.0, 0.3, 0.7, 1.0],
                   ),
                 ),
               );
@@ -106,9 +114,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
               children: [
                 Align(
                   alignment: Alignment.topRight,
-                  child: TextButton(
-                    onPressed: _completeOnboarding,
-                    child: Text('Passer', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontWeight: FontWeight.bold)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8.0, top: 8.0),
+                    child: TextButton(
+                      onPressed: _completeOnboarding,
+                      style: TextButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white70 : const Color(0xFF64748B),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                      child: const Text(
+                        'Passer',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3),
+                      ),
+                    ),
                   ),
                 ),
                 Expanded(
@@ -123,49 +141,88 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                     itemBuilder: (context, index) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                        child: GlassContainer(
-                          padding: const EdgeInsets.all(32.0),
-                          blur: 20,
-                          opacity: isDark ? 0.1 : 0.6,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Glassmorphism image container
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(40),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _onboardingData[index]['color'].withOpacity(0.2),
+                                    blurRadius: 40,
+                                    spreadRadius: -10,
+                                    offset: const Offset(0, 20),
+                                  ),
+                                ],
+                              ),
+                              child: GlassContainer(
+                                blur: 20,
+                                opacity: isDark ? 0.1 : 0.6,
                                 padding: const EdgeInsets.all(32),
-                                decoration: BoxDecoration(
-                                  color: _onboardingData[index]['color'].withOpacity(0.15),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: _onboardingData[index]['color'].withOpacity(0.3),
-                                      blurRadius: 30,
-                                      spreadRadius: -5,
-                                    )
-                                  ],
+                                borderRadius: BorderRadius.circular(40),
+                                border: Border.all(
+                                  color: _onboardingData[index]['color'].withOpacity(0.3),
+                                  width: 1.5,
                                 ),
-                                child: Icon(
-                                  _onboardingData[index]['icon'],
-                                  size: 100,
-                                  color: _onboardingData[index]['color'],
+                                child: Container(
+                                  width: 200,
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        _onboardingData[index]['color'].withOpacity(0.1),
+                                        _onboardingData[index]['color'].withOpacity(0.2),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _onboardingData[index]['color'].withOpacity(0.3),
+                                        blurRadius: 20,
+                                        spreadRadius: -5,
+                                      )
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(30),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24.0),
+                                      child: Image.asset(
+                                        _onboardingData[index]['image'],
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 64),
-                              Text(
-                                _onboardingData[index]['title'],
-                                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32),
-                                textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 56),
+                            Text(
+                              _onboardingData[index]['title'],
+                              style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                fontSize: 32,
+                                letterSpacing: -0.5,
                               ),
-                              const SizedBox(height: 24),
-                              Text(
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 20),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Text(
                                 _onboardingData[index]['description'],
                                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: isDark ? Colors.white70 : Colors.black87,
+                                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
                                   height: 1.6,
+                                  fontSize: 16,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -176,41 +233,82 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Smooth dot indicators
                       Row(
                         children: List.generate(
                           _onboardingData.length,
-                          (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.only(right: 8),
-                            height: 8,
-                            width: _currentPage == index ? 24 : 8,
-                            decoration: BoxDecoration(
-                              color: _currentPage == index 
-                                ? AppTheme.primaryTeal 
-                                : AppTheme.primaryTeal.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
+                          (index) {
+                            final isActive = _currentPage == index;
+                            final activeColor = _onboardingData[_currentPage]['color'] as Color;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              margin: const EdgeInsets.only(right: 8),
+                              height: 8,
+                              width: isActive ? 28 : 8,
+                              decoration: BoxDecoration(
+                                color: isActive 
+                                  ? activeColor 
+                                  : (isDark ? Colors.white24 : const Color(0xFFCBD5E1)),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            );
+                          },
                         ),
                       ),
+                      
+                      // Next/Start Button
                       _currentPage == _onboardingData.length - 1
-                        ? ElevatedButton(
-                            onPressed: _completeOnboarding,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        ? Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _onboardingData[_currentPage]['color'].withOpacity(0.4),
+                                  blurRadius: 20,
+                                  spreadRadius: -4,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                             ),
-                            child: const Text('Commencer'),
+                            child: ElevatedButton(
+                              onPressed: _completeOnboarding,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                                backgroundColor: _onboardingData[_currentPage]['color'],
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              ),
+                              child: const Text(
+                                'Commencer',
+                                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5),
+                              ),
+                            ),
                           )
-                        : FloatingActionButton(
-                            onPressed: () {
-                              _pageController.nextPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              );
-                            },
-                            backgroundColor: AppTheme.primaryTeal,
-                            elevation: 8,
-                            child: const Icon(Icons.arrow_forward, color: Colors.white),
+                        : Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _onboardingData[_currentPage]['color'].withOpacity(0.4),
+                                  blurRadius: 20,
+                                  spreadRadius: -4,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: FloatingActionButton(
+                              onPressed: () {
+                                _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              },
+                              backgroundColor: _onboardingData[_currentPage]['color'],
+                              elevation: 0,
+                              shape: const CircleBorder(),
+                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 28),
+                            ),
                           ),
                     ],
                   ),
