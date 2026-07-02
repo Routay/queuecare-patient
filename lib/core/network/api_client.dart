@@ -11,8 +11,8 @@ class ApiClient {
     _dio = Dio(BaseOptions(
       // URL du serveur FastAPI (Render - Production)
       baseUrl: 'https://queuecare-backend-u770.onrender.com',
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 60),
       headers: {
         'Content-Type': 'application/json',
       },
