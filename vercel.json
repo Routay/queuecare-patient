@@ -1,10 +1,12 @@
 {
+  "buildCommand": "bash build.sh",
+  "installCommand": "echo 'Custom build handles install'",
   "outputDirectory": "build/web",
   "cleanUrls": true,
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/index.html"
     }
   ]
 }
