@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
 import 'package:queuecare_patient/core/database/local_database.dart';
@@ -10,11 +11,12 @@ class PrescriptionsScreen extends StatefulWidget {
   State<PrescriptionsScreen> createState() => _PrescriptionsScreenState();
 }
 
-class _PrescriptionsScreenState extends State<PrescriptionsScreen> with SingleTickerProviderStateMixin {
+class _PrescriptionsScreenState extends State<PrescriptionsScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   List<dynamic> _prescriptions = [];
   String? _error;
   late AnimationController _bgAnimController;
+  late AnimationController _listAnimController;
 
   @override
   void initState() {
@@ -23,12 +25,19 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> with SingleTi
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat(reverse: true);
+    
+    _listAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
     _fetchPrescriptions();
   }
 
   @override
   void dispose() {
     _bgAnimController.dispose();
+    _listAnimController.dispose();
     super.dispose();
   }
 
@@ -56,6 +65,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> with SingleTi
           _prescriptions = response.data;
           _isLoading = false;
         });
+        _listAnimController.forward(from: 0);
       }
     } catch (e) {
       if (mounted) {
@@ -126,7 +136,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> with SingleTi
         },
         child: SafeArea(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.warning))
+              ? _buildShimmerLoading(isDark)
               : _error != null
                   ? _buildErrorState(isDark)
                   : _prescriptions.isEmpty
@@ -252,6 +262,27 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> with SingleTi
     );
   }
 
+  Widget _buildShimmerLoading(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[300]!,
+          highlightColor: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[100]!,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            height: 200,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildPrescriptionsList(bool isDark) {
     return RefreshIndicator(
       onRefresh: _fetchPrescriptions,
@@ -263,8 +294,21 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> with SingleTi
           final p = _prescriptions[index];
           final isDelivered = p['status'] == 'delivered';
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
+          return AnimatedBuilder(
+            animation: _listAnimController,
+            builder: (context, child) {
+              final delay = index * 0.15;
+              final progress = ((_listAnimController.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
+              return Opacity(
+                opacity: progress,
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - progress)),
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(24),
@@ -514,7 +558,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> with SingleTi
                 ],
               ),
             ),
-          );
+          ));
         },
       ),
     );

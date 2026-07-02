@@ -1,7 +1,4 @@
-import 'dart:io';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,11 +10,6 @@ import 'package:queuecare_patient/core/bloc/settings_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
   
   // Vérification du premier lancement
   final prefs = await SharedPreferences.getInstance();

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
@@ -237,12 +238,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     
                     // Action cards grid
                     Expanded(
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.88,
-                        padding: const EdgeInsets.only(bottom: 16),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Ajustement dynamique du ratio pour s'adapter à tous les mobiles
+                          double aspectRatio = constraints.maxWidth / (constraints.maxHeight * 1.1);
+                          if (aspectRatio < 0.6) aspectRatio = 0.6;
+                          if (aspectRatio > 1.2) aspectRatio = 1.2;
+                          
+                          int crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                          if (constraints.maxWidth < 320) crossAxisCount = 1;
+
+                          return GridView.count(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio: crossAxisCount == 1 ? 2.5 : aspectRatio,
+                            padding: const EdgeInsets.only(bottom: 16),
                         children: [
                           _buildPremiumActionCard(
                             context,
@@ -291,9 +302,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             onTap: () => setState(() => _currentIndex = 3),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
+                      );
+                    },
+                  ),
+                ),
+              ],
                 ),
               ),
             ),
@@ -369,51 +382,117 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      extendBody: true, // Pour que le fond glisse sous la navigation
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _pages,
+          ),
+          // Floating Glass Bottom Navigation Bar
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.only(
+                left: 20, 
+                right: 20, 
+                bottom: MediaQuery.of(context).padding.bottom > 0 ? MediaQuery.of(context).padding.bottom : 20,
+                top: 10,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark 
+                          ? const Color(0xFF0F172A).withOpacity(0.6) 
+                          : Colors.white.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: isDark 
+                            ? Colors.white.withOpacity(0.1) 
+                            : Colors.white.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                          blurRadius: 24,
+                          spreadRadius: -4,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildNavItem(0, Icons.home_outlined, Icons.home, loc.get('home'), isDark),
+                        _buildNavItem(1, Icons.confirmation_number_outlined, Icons.confirmation_number, loc.get('queue'), isDark),
+                        _buildNavItem(2, Icons.local_pharmacy_outlined, Icons.local_pharmacy, loc.get('pharmacy'), isDark),
+                        _buildNavItem(3, Icons.settings_outlined, Icons.settings, loc.get('settings'), isDark),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-      bottomNavigationBar: Container(
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData iconOutlined, IconData iconFilled, String label, bool isDark) {
+    final isSelected = _currentIndex == index;
+    
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutQuint,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 20,
-              spreadRadius: -5,
-              offset: const Offset(0, -5),
-            ),
-          ],
+          color: isSelected 
+              ? AppTheme.primaryTeal.withOpacity(0.12) 
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
         ),
-        child: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) => setState(() => _currentIndex = index),
-          backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-          indicatorColor: AppTheme.primaryTeal.withOpacity(0.12),
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          height: 68,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.home_outlined, size: 24),
-              selectedIcon: Icon(Icons.home, color: AppTheme.primaryTeal, size: 24),
-              label: loc.get('home'),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+              child: Icon(
+                isSelected ? iconFilled : iconOutlined,
+                key: ValueKey<bool>(isSelected),
+                color: isSelected 
+                    ? AppTheme.primaryTeal 
+                    : (isDark ? Colors.white38 : const Color(0xFF94A3B8)),
+                size: 24,
+              ),
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.confirmation_number_outlined, size: 24),
-              selectedIcon: Icon(Icons.confirmation_number, color: AppTheme.primaryTeal, size: 24),
-              label: loc.get('queue'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.local_pharmacy_outlined, size: 24),
-              selectedIcon: Icon(Icons.local_pharmacy, color: AppTheme.primaryTeal, size: 24),
-              label: loc.get('pharmacy'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.settings_outlined, size: 24),
-              selectedIcon: Icon(Icons.settings, color: AppTheme.primaryTeal, size: 24),
-              label: loc.get('settings'),
-            ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: isSelected ? 1.0 : 0.0,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: AppTheme.primaryTeal,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+            ]
           ],
         ),
       ),

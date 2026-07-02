@@ -8,8 +8,9 @@ class AppointmentsScreen extends StatefulWidget {
   State<AppointmentsScreen> createState() => _AppointmentsScreenState();
 }
 
-class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTickerProviderStateMixin {
+class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProviderStateMixin {
   late AnimationController _bgAnimController;
+  late AnimationController _listAnimController;
 
   @override
   void initState() {
@@ -18,11 +19,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat(reverse: true);
+
+    _listAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _listAnimController.forward();
   }
 
   @override
   void dispose() {
     _bgAnimController.dispose();
+    _listAnimController.dispose();
     super.dispose();
   }
 
@@ -245,6 +253,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 date: '02 Sept 2026',
                 status: 'Terminé',
                 isDark: isDark,
+                delay: 0,
               ),
               _buildHistoryCard(
                 context: context,
@@ -253,6 +262,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
                 date: '14 Juil 2026',
                 status: 'Terminé',
                 isDark: isDark,
+                delay: 1,
               ),
             ],
           ),
@@ -268,25 +278,39 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
     required String date,
     required String status,
     required bool isDark,
+    required int delay,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            spreadRadius: -2,
-            offset: const Offset(0, 4),
+    return AnimatedBuilder(
+      animation: _listAnimController,
+      builder: (context, child) {
+        final delayValue = delay * 0.15;
+        final progress = ((_listAnimController.value - delayValue) / (1.0 - delayValue)).clamp(0.0, 1.0);
+        return Opacity(
+          opacity: progress,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - progress)),
+            child: child,
           ),
-        ],
-      ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+              blurRadius: 10,
+              spreadRadius: -2,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -364,6 +388,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with SingleTick
           ],
         ),
       ),
-    );
+    ));
   }
 }

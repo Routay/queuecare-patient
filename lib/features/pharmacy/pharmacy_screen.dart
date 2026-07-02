@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
@@ -246,7 +247,47 @@ class _PharmacyScreenState extends State<PharmacyScreen> with SingleTickerProvid
           Expanded(
             flex: 2,
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryTeal))
+              ? ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: 4,
+                  itemBuilder: (context, index) {
+                    return Shimmer.fromColors(
+                      baseColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[300]!,
+                      highlightColor: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[100]!,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(width: 120, height: 14, color: Colors.white),
+                                  const SizedBox(height: 8),
+                                  Container(width: double.infinity, height: 12, color: Colors.white),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                )
               : _error != null
                 ? Center(
                     child: Padding(

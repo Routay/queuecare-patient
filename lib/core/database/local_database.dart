@@ -1,77 +1,36 @@
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
+/// Gestionnaire de stockage local universel (Web, Mobile, Desktop).
+/// Utilise SharedPreferences au lieu de sqflite pour une compatibilité totale
+/// sans aucune configuration native requise.
 class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._init();
-  static Database? _database;
+  static const String _ticketKey = 'active_ticket';
 
   LocalDatabase._init();
 
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB('queuecare.db');
-    return _database!;
-  }
-
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
-
-    return await openDatabase(path, version: 1, onCreate: _createDB);
-  }
-
-  Future _createDB(Database db, int version) async {
-    const idType = 'TEXT PRIMARY KEY';
-    const textType = 'TEXT NOT NULL';
-    const textNullableType = 'TEXT';
-    const integerType = 'INTEGER NOT NULL';
-
-    await db.execute('''
-CREATE TABLE tickets (
-  id $idType,
-  ticketNumber $textType,
-  department $textType,
-  position $integerType,
-  estimatedWaitTime $integerType,
-  timestamp $textNullableType
-)
-''');
-
-    await db.execute('''
-CREATE TABLE pharmacies (
-  id $idType,
-  name $textType,
-  address $textType,
-  latitude REAL NOT NULL,
-  longitude REAL NOT NULL
-)
-''');
-  }
-
   // --- Ticket Operations ---
   Future<void> saveActiveTicket(Map<String, dynamic> ticket) async {
-    final db = await instance.database;
-    await db.delete('tickets'); // Only keep the active ticket
-    await db.insert('tickets', ticket);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_ticketKey, jsonEncode(ticket));
   }
 
   Future<Map<String, dynamic>?> getActiveTicket() async {
-    final db = await instance.database;
-    final maps = await db.query('tickets', limit: 1);
-    if (maps.isNotEmpty) {
-      return maps.first;
-    } else {
-      return null;
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_ticketKey);
+    if (jsonString != null && jsonString.isNotEmpty) {
+      return jsonDecode(jsonString) as Map<String, dynamic>;
     }
+    return null;
   }
 
   Future<void> clearTicket() async {
-    final db = await instance.database;
-    await db.delete('tickets');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_ticketKey);
   }
 
-  Future close() async {
-    final db = await instance.database;
-    db.close();
+  Future<void> close() async {
+    // No-op: SharedPreferences doesn't need to be closed.
   }
 }

@@ -3,16 +3,58 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 
-class PharmacyDetailScreen extends StatelessWidget {
+class PharmacyDetailScreen extends StatefulWidget {
   final Map<String, dynamic> pharmacy;
 
   const PharmacyDetailScreen({super.key, required this.pharmacy});
 
   @override
+  State<PharmacyDetailScreen> createState() => _PharmacyDetailScreenState();
+}
+
+class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _entranceAnimController;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _entranceAnimController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceAnimController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildStaggeredChild(int index, Widget child) {
+    return AnimatedBuilder(
+      animation: _entranceAnimController,
+      builder: (context, c) {
+        final delay = index * 0.12;
+        final progress = ((_entranceAnimController.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
+        return Opacity(
+          opacity: progress,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - progress)),
+            child: c,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pharmacy = widget.pharmacy;
 
-    // Utilisation des données de stock réelles provenant de l'API
+    // Stock data from API
     final List<dynamic> realStock = pharmacy['stock'] ?? [];
 
     return Scaffold(
@@ -73,12 +115,12 @@ class PharmacyDetailScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // Gradient overlay at bottom
+                    // Gradient overlay
                     Positioned(
                       bottom: 0,
                       left: 0,
                       right: 0,
-                      height: 60,
+                      height: 80,
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -125,9 +167,8 @@ class PharmacyDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name + status
-                    Row(
+                    _buildStaggeredChild(0, Row(
                       children: [
-                        // Pharmacy icon
                         Container(
                           width: 56,
                           height: 56,
@@ -176,8 +217,7 @@ class PharmacyDetailScreen extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 6,
-                                      height: 6,
+                                      width: 6, height: 6,
                                       decoration: const BoxDecoration(
                                         color: AppTheme.success,
                                         shape: BoxShape.circle,
@@ -187,7 +227,7 @@ class PharmacyDetailScreen extends StatelessWidget {
                                     const Text(
                                       "Ouvert",
                                       style: TextStyle(
-                                        color: AppTheme.success, 
+                                        color: AppTheme.success,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12,
                                       ),
@@ -199,19 +239,27 @@ class PharmacyDetailScreen extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
+                    )),
                     
                     const SizedBox(height: 16),
                     
                     // Address
-                    Container(
+                    _buildStaggeredChild(1, Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+                            blurRadius: 8,
+                            spreadRadius: -2,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
@@ -236,39 +284,56 @@ class PharmacyDetailScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ),
+                    )),
                     
                     const SizedBox(height: 24),
                     
                     // Action buttons
-                    Row(
+                    _buildStaggeredChild(2, Row(
                       children: [
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(18),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.primaryTeal.withOpacity(0.3),
-                                  blurRadius: 16,
-                                  spreadRadius: -4,
-                                  offset: const Offset(0, 6),
+                                  color: AppTheme.primaryTeal.withOpacity(0.35),
+                                  blurRadius: 20,
+                                  spreadRadius: -6,
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
                             ),
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Lancement de la navigation GPS...')),
-                                );
-                              },
-                              icon: const Icon(Icons.directions_rounded),
-                              label: const Text("Y aller"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryTeal,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                elevation: 0,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Lancement de la navigation GPS...')),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(18),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.directions_rounded, color: Colors.white),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        "Y aller",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -276,11 +341,20 @@ class PharmacyDetailScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(18),
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
                             border: Border.all(
-                              color: AppTheme.primaryTeal.withOpacity(0.3),
-                              width: 2,
+                              color: AppTheme.primaryTeal.withOpacity(0.25),
+                              width: 1.5,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+                                blurRadius: 8,
+                                spreadRadius: -2,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: IconButton(
                             onPressed: () {
@@ -295,12 +369,12 @@ class PharmacyDetailScreen extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
+                    )),
                     
                     const SizedBox(height: 36),
                     
                     // Stock section header
-                    Row(
+                    _buildStaggeredChild(3, Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
@@ -318,115 +392,143 @@ class PharmacyDetailScreen extends StatelessWidget {
                             letterSpacing: -0.3,
                           ),
                         ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${realStock.length} produits',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
+                    )),
                     const SizedBox(height: 16),
                     
                     if (realStock.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(24),
+                      _buildStaggeredChild(4, Container(
+                        padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
                           color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: Column(
                           children: [
-                            Icon(
-                              Icons.inventory_2_outlined,
-                              size: 40,
-                              color: isDark ? Colors.white24 : const Color(0xFFCBD5E1),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.inventory_2_outlined,
+                                size: 32,
+                                color: isDark ? Colors.white24 : const Color(0xFFCBD5E1),
+                              ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                             Text(
                               "Aucune information de stock disponible.",
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
                                 fontSize: 14,
+                                height: 1.5,
                               ),
                             ),
                           ],
                         ),
-                      )
+                      ))
                     else
-                      ...realStock.map((item) => Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                      ...realStock.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        return _buildStaggeredChild(4 + index, Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+                                blurRadius: 8,
+                                spreadRadius: -2,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
-                              blurRadius: 8,
-                              spreadRadius: -2,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: (item['inStock'] ? AppTheme.success : AppTheme.danger).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.medication_outlined,
-                                color: item['inStock'] ? AppTheme.success : AppTheme.danger,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Text(
-                                item['name'],
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: isDark ? Colors.white : AppTheme.slateDark,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: (item['inStock'] ? AppTheme.success : AppTheme.danger).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.medication_outlined,
+                                  color: item['inStock'] ? AppTheme.success : AppTheme.danger,
+                                  size: 20,
                                 ),
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: (item['inStock'] ? AppTheme.success : AppTheme.danger).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: item['inStock'] ? AppTheme.success : AppTheme.danger,
-                                      shape: BoxShape.circle,
-                                    ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  item['name'],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white : AppTheme.slateDark,
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    item['inStock'] ? 'En Stock' : 'Rupture',
-                                    style: TextStyle(
-                                      color: item['inStock'] ? AppTheme.success : AppTheme.danger,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      )),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: (item['inStock'] ? AppTheme.success : AppTheme.danger).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6, height: 6,
+                                      decoration: BoxDecoration(
+                                        color: item['inStock'] ? AppTheme.success : AppTheme.danger,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      item['inStock'] ? 'En Stock' : 'Rupture',
+                                      style: TextStyle(
+                                        color: item['inStock'] ? AppTheme.success : AppTheme.danger,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ));
+                      }),
                   ],
                 ),
               ),

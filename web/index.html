@@ -139,12 +139,11 @@
   </div>
 
   <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
+
     window.addEventListener('load', function(ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
+      _flutter.loader.load({
         onEntrypointLoaded: function(engineInitializer) {
           engineInitializer.initializeEngine().then(function(appRunner) {
             appRunner.runApp().then(function() {
@@ -156,6 +155,5 @@
       });
     });
   </script>
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
