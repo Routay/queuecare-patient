@@ -296,58 +296,56 @@ class QRScannerUtils {
                               ),
                               child: ElevatedButton(
                                 onPressed: () async {
+                                  // CRITICAL FIX: Capture messenger BEFORE popping dialog
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  final dept = selectedDept;
                                   Navigator.pop(context); // Fermer le dialog
                                   
                                   try {
-                                    // Appel réel à l'API pour générer un ticket
                                     final response = await ApiClient().dio.post(
                                       '/queue/ticket',
-                                      data: {'department': selectedDept}
+                                      data: {'department': dept}
                                     );
                                     
-                                    if (context.mounted) {
-                                      // Save to local DB so it persists across app restarts!
-                                      await LocalDatabase.instance.saveActiveTicket(response.data);
-                                      
-                                      // Notifier l'appelant
-                                      onTicketScanned(response.data);
-                                      
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Row(
-                                            children: [
-                                              const Icon(Icons.check_circle_rounded, color: Colors.white),
-                                              const SizedBox(width: 12),
-                                              Expanded(child: Text('Nouveau ticket généré pour $selectedDept')),
-                                            ],
-                                          ),
-                                          backgroundColor: AppTheme.success,
-                                          behavior: SnackBarBehavior.floating,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          margin: const EdgeInsets.all(16),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    // Save to local DB
+                                    await LocalDatabase.instance.saveActiveTicket(response.data);
+                                    
+                                    // Notifier l'appelant (always call, no context needed)
+                                    onTicketScanned(response.data);
+                                    
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.check_circle_rounded, color: Colors.white),
+                                            const SizedBox(width: 12),
+                                            Expanded(child: Text('Nouveau ticket généré pour $dept')),
+                                          ],
                                         ),
-                                      );
-                                    }
+                                        backgroundColor: AppTheme.success,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        margin: const EdgeInsets.all(16),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                      ),
+                                    );
                                   } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Row(
-                                            children: [
-                                              const Icon(Icons.error_outline_rounded, color: Colors.white),
-                                              const SizedBox(width: 12),
-                                              Expanded(child: Text('Erreur : $e')),
-                                            ],
-                                          ),
-                                          backgroundColor: AppTheme.danger,
-                                          behavior: SnackBarBehavior.floating,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          margin: const EdgeInsets.all(16),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.error_outline_rounded, color: Colors.white),
+                                            const SizedBox(width: 12),
+                                            Expanded(child: Text('Erreur : $e')),
+                                          ],
                                         ),
-                                      );
-                                    }
+                                        backgroundColor: AppTheme.danger,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        margin: const EdgeInsets.all(16),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                      ),
+                                    );
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
