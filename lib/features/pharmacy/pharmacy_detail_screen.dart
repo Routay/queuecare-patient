@@ -314,7 +314,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> with Single
                                 onTap: () async {
                                   final lat = pharmacy['latitude'];
                                   final lng = pharmacy['longitude'];
-                                  final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                                  final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
                                   if (await canLaunchUrl(url)) {
                                     await launchUrl(url, mode: LaunchMode.externalApplication);
                                   } else {
