@@ -158,7 +158,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.notifications_active_outlined, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text('Aucune nouvelle notification pour le moment.'),
+                          ],
+                        ),
+                        backgroundColor: isDark ? AppTheme.slateDark : AppTheme.primaryTeal,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
+                  },
                   color: AppTheme.primaryTeal,
                 ),
               )
@@ -311,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
-          floatingActionButton: widget.isGuest ? Container(
+          floatingActionButton: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
@@ -331,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
-          ) : null,
+          ),
         );
       }
     );
