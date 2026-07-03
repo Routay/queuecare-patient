@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PharmacyDetailScreen extends StatefulWidget {
   final Map<String, dynamic> pharmacy;
@@ -310,10 +311,19 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> with Single
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Lancement de la navigation GPS...')),
-                                  );
+                                onTap: () async {
+                                  final lat = pharmacy['latitude'];
+                                  final lng = pharmacy['longitude'];
+                                  final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                                  } else {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Impossible de lancer la navigation GPS.")),
+                                      );
+                                    }
+                                  }
                                 },
                                 borderRadius: BorderRadius.circular(18),
                                 child: const Padding(
@@ -357,10 +367,18 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> with Single
                             ],
                           ),
                           child: IconButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Appel de la pharmacie...')),
-                              );
+                            onPressed: () async {
+                              final phone = pharmacy['phone'] ?? '+221770000000'; // Numéro par défaut
+                              final url = Uri.parse('tel:$phone');
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Impossible de lancer l'appel.")),
+                                  );
+                                }
+                              }
                             },
                             style: IconButton.styleFrom(
                               padding: const EdgeInsets.all(14),
