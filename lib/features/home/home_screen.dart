@@ -269,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 14,
                             childAspectRatio: crossAxisCount == 1 ? 2.5 : aspectRatio,
-                            padding: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.only(bottom: 120),
                         children: [
                           _buildPremiumActionCard(
                             context,

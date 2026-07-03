@@ -248,7 +248,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with SingleTickerProvid
             flex: 2,
             child: _isLoading 
               ? ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 120),
                   itemCount: 4,
                   itemBuilder: (context, index) {
                     return Shimmer.fromColors(
@@ -326,7 +326,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with SingleTickerProvid
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 120),
                     itemCount: _pharmacies.length,
                     itemBuilder: (context, index) {
                       final p = _pharmacies[index];
