@@ -327,25 +327,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
-          floatingActionButton: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryTeal.withOpacity(0.4),
-                  blurRadius: 20,
-                  spreadRadius: -4,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: FloatingActionButton.extended(
-              onPressed: () => _showQRScanner(context),
-              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-              label: const Text('Scanner QR', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-              backgroundColor: AppTheme.primaryTeal,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          floatingActionButton: Padding(
+            padding: const EdgeInsets.only(bottom: 90.0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryTeal.withOpacity(0.4),
+                    blurRadius: 20,
+                    spreadRadius: -4,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton.extended(
+                onPressed: () => _showQRScanner(context),
+                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                label: const Text('Scanner QR', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                backgroundColor: AppTheme.primaryTeal,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
             ),
           ),
         );
