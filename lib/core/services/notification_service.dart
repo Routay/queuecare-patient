@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:queuecare_patient/core/database/local_database.dart';
+import 'package:universal_html/html.dart' as html;
 
 class NotificationService {
   static final NotificationService instance = NotificationService._internal();
@@ -17,18 +18,26 @@ class NotificationService {
   Future<void> requestPermission() async {
     if (_initialized) return;
 
-    // --- Notifications locales Android ---
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    if (kIsWeb) {
+      // --- Notifications Web (Navigateur) ---
+      if (html.Notification.supported) {
+        final permission = await html.Notification.requestPermission();
+        debugPrint('Web Notification permission: $permission');
+      }
+    } else {
+      // --- Notifications locales Android ---
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initSettings = InitializationSettings(android: androidSettings);
 
-    await _notifications.initialize(initializationSettings: initSettings);
+      await _notifications.initialize(settings: initSettings);
 
-    // Demander la permission (Android 13+)
-    await _notifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+      // Demander la permission (Android 13+)
+      await _notifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    }
 
     // --- Moteur TTS (voix) ---
     await _tts.setLanguage('fr-FR');
@@ -56,25 +65,31 @@ class NotificationService {
     });
 
     // --- Notification visuelle ---
-    const androidDetails = AndroidNotificationDetails(
-      'queuecare_channel', // ID du canal
-      'QueueCare Notifications', // Nom du canal
-      channelDescription: 'Notifications de la file d\'attente QueueCare',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-      enableVibration: true,
-      ticker: 'QueueCare',
-    );
+    if (kIsWeb) {
+      if (html.Notification.supported && html.Notification.permission == 'granted') {
+        html.Notification(title, body: body, icon: 'favicon.png');
+      }
+    } else {
+      const androidDetails = AndroidNotificationDetails(
+        'queuecare_channel', // ID du canal
+        'QueueCare Notifications', // Nom du canal
+        channelDescription: 'Notifications de la file d\'attente QueueCare',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        ticker: 'QueueCare',
+      );
 
-    const details = NotificationDetails(android: androidDetails);
+      const details = NotificationDetails(android: androidDetails);
 
-    await _notifications.show(
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title: title,
-      body: body,
-      notificationDetails: details,
-    );
+      await _notifications.show(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
+    }
 
     // --- Annonce vocale (si demandée) ---
     if (speak) {
