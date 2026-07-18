@@ -1,28 +1,99 @@
-import 'package:universal_html/html.dart' as html;
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:queuecare_patient/core/database/local_database.dart';
 
 class NotificationService {
   static final NotificationService instance = NotificationService._internal();
 
   NotificationService._internal();
 
-  bool _hasPermission = false;
+  final FlutterLocalNotificationsPlugin _notifications =
+      FlutterLocalNotificationsPlugin();
+  final FlutterTts _tts = FlutterTts();
+  bool _initialized = false;
 
-  /// Demande la permission d'afficher des notifications au navigateur
+  /// Initialise les notifications locales et le moteur TTS
   Future<void> requestPermission() async {
-    if (html.Notification.supported) {
-      final permission = await html.Notification.requestPermission();
-      _hasPermission = permission == 'granted';
+    if (_initialized) return;
+
+    // --- Notifications locales Android ---
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initSettings = InitializationSettings(android: androidSettings);
+
+    await _notifications.initialize(initializationSettings: initSettings);
+
+    // Demander la permission (Android 13+)
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+
+    // --- Moteur TTS (voix) ---
+    await _tts.setLanguage('fr-FR');
+    await _tts.setSpeechRate(0.45); // Vitesse modérée, claire
+    await _tts.setVolume(1.0); // Volume max
+    await _tts.setPitch(1.05); // Tonalité légèrement élevée (alerte)
+
+    _initialized = true;
+    debugPrint('🔔 NotificationService initialisé (Notifications + TTS)');
+  }
+
+  /// Affiche une notification système ET annonce vocalement le message
+  Future<void> showNotification(String title, String body,
+      {bool speak = false}) async {
+    
+    if (!_initialized) {
+      await requestPermission();
+    }
+
+    // --- Sauvegarde locale de la notification ---
+    await LocalDatabase.instance.addNotification({
+      'title': title,
+      'body': body,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
+    // --- Notification visuelle ---
+    const androidDetails = AndroidNotificationDetails(
+      'queuecare_channel', // ID du canal
+      'QueueCare Notifications', // Nom du canal
+      channelDescription: 'Notifications de la file d\'attente QueueCare',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      ticker: 'QueueCare',
+    );
+
+    const details = NotificationDetails(android: androidDetails);
+
+    await _notifications.show(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: details,
+    );
+
+    // --- Annonce vocale (si demandée) ---
+    if (speak) {
+      await speakAnnouncement('$title. $body');
     }
   }
 
-  /// Affiche une notification système (fonctionne même si l'onglet est en arrière-plan)
-  void showNotification(String title, String body) {
-    if (html.Notification.supported && _hasPermission) {
-      html.Notification(
-        title,
-        body: body,
-        icon: 'icons/Icon-192.png', // Assuming PWA icon exists
-      );
+  /// Annonce vocale uniquement (Text-to-Speech)
+  Future<void> speakAnnouncement(String message) async {
+    try {
+      await _tts.speak(message);
+      debugPrint('🔊 TTS: $message');
+    } catch (e) {
+      debugPrint('❌ TTS Error: $e');
     }
+  }
+
+  /// Arrêter la synthèse vocale en cours
+  Future<void> stopSpeaking() async {
+    await _tts.stop();
   }
 }

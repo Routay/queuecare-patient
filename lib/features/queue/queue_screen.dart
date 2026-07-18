@@ -89,32 +89,60 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
     final ticketId = ticket['id'];
     if (ticketId != null) {
       _socket.connect(ticketId.toString());
-      _socket.stream.listen((data) {
-        if (mounted && data['type'] == 'queue_update') {
-          final rawNewPosition = data['position'] ?? 0;
-          final newPosition = rawNewPosition + 1; // 1-indexed display
-          
-          // Notifications quand c'est bientôt le tour
-          if (newPosition <= 2 && _currentPosition > 2) {
-            NotificationService.instance.showNotification(
-              "Bientôt votre tour !", 
-              "Préparez-vous, vous êtes en ${newPosition == 1 ? '1ère' : '2ème'} position."
-            );
-          }
-          // Notification quand c'est le tour (position serveur = 0, display = 1)
-          if (rawNewPosition == 0 && (_currentPosition - 1) > 0) {
-            NotificationService.instance.showNotification(
-              "C'est votre tour !", 
-              "Veuillez vous diriger vers le bureau."
-            );
-          }
+      _socket.stream.listen(
+        (data) {
+          if (mounted && data['type'] == 'queue_update') {
+            final rawNewPosition = data['position'] ?? 0;
+            final newPosition = rawNewPosition + 1; // 1-indexed display
+            
+            // Notifications quand c'est bientôt le tour
+            if (newPosition <= 2 && _currentPosition > 2) {
+              NotificationService.instance.showNotification(
+                "Bientôt votre tour !", 
+                "Préparez-vous, vous êtes en ${newPosition == 1 ? '1ère' : '2ème'} position.",
+                speak: true,
+              );
+            }
+            // Notification quand c'est le tour (position serveur = 0, display = 1)
+            if (rawNewPosition == 0 && (_currentPosition - 1) > 0) {
+              NotificationService.instance.showNotification(
+                "C'est votre tour !", 
+                "Veuillez vous diriger vers le bureau immédiatement.",
+                speak: true,
+              );
+            }
 
-          setState(() {
-            _currentPosition = newPosition;
-            _estimatedWaitTime = data['estimatedWaitTime'] ?? 0;
-          });
-        }
-      });
+            setState(() {
+              _currentPosition = newPosition;
+              _estimatedWaitTime = data['estimatedWaitTime'] ?? 0;
+            });
+          }
+        },
+        onError: (error) {
+          print('❌ [WebSocket Error] $error');
+          if (mounted) {
+            setState(() => _isConnected = false);
+            // Reconnexion automatique après 5 secondes
+            Future.delayed(const Duration(seconds: 5), () {
+              if (mounted && _ticketId != null) {
+                _setupFromTicket({'id': _ticketId, 'position': _currentPosition - 1, 'estimatedWaitTime': _estimatedWaitTime});
+              }
+            });
+          }
+        },
+        onDone: () {
+          print('🔌 [WebSocket] Flux terminé');
+          if (mounted) {
+            setState(() => _isConnected = false);
+            // Reconnexion automatique si la page est toujours montée
+            Future.delayed(const Duration(seconds: 5), () {
+              if (mounted && _ticketId != null) {
+                _setupFromTicket({'id': _ticketId, 'position': _currentPosition - 1, 'estimatedWaitTime': _estimatedWaitTime});
+              }
+            });
+          }
+        },
+      );
     }
   }
 

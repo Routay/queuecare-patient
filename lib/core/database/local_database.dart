@@ -33,4 +33,52 @@ class LocalDatabase {
   Future<void> close() async {
     // No-op: SharedPreferences doesn't need to be closed.
   }
+
+  // --- Appointments Operations ---
+  static const String _appointmentsKey = 'local_appointments';
+
+  Future<void> saveAppointments(List<Map<String, dynamic>> appointments) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_appointmentsKey, jsonEncode(appointments));
+  }
+
+  Future<List<Map<String, dynamic>>> getAppointments() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_appointmentsKey);
+    if (jsonString != null && jsonString.isNotEmpty) {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<void> addAppointment(Map<String, dynamic> appointment) async {
+    final appointments = await getAppointments();
+    appointments.add(appointment);
+    await saveAppointments(appointments);
+  }
+
+  // --- Notifications Operations ---
+  static const String _notificationsKey = 'local_notifications';
+
+  Future<void> saveNotifications(List<Map<String, dynamic>> notifications) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_notificationsKey, jsonEncode(notifications));
+  }
+
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_notificationsKey);
+    if (jsonString != null && jsonString.isNotEmpty) {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<void> addNotification(Map<String, dynamic> notification) async {
+    final notifications = await getNotifications();
+    notifications.add(notification);
+    await saveNotifications(notifications);
+  }
 }

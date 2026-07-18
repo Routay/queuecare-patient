@@ -8,6 +8,8 @@ import 'package:queuecare_patient/features/queue/queue_screen.dart';
 import 'package:queuecare_patient/features/pharmacy/pharmacy_screen.dart';
 import 'package:queuecare_patient/features/settings/settings_screen.dart';
 import 'package:queuecare_patient/features/appointments/appointments_screen.dart';
+import 'package:queuecare_patient/features/medical_records/medical_records_screen.dart';
+import 'package:queuecare_patient/features/notifications/notifications_screen.dart';
 import 'package:queuecare_patient/features/prescriptions/prescriptions_screen.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
 import 'package:queuecare_patient/core/database/local_database.dart';
@@ -23,8 +25,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  Widget _queueScreen = const QueueScreen();
 
-  late final List<Widget> _pages;
   late AnimationController _bgAnimController;
   late AnimationController _cardAnimController;
   late Animation<double> _cardStaggerAnimation;
@@ -49,13 +51,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       curve: Curves.easeOutCubic,
     );
     _cardAnimController.forward();
-
-    _pages = [
-      _buildDashboard(),
-      const QueueScreen(),
-      const PharmacyScreen(),
-      const SettingsScreen(),
-    ];
   }
 
   @override
@@ -70,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       context,
       onTicketScanned: (ticket) {
         setState(() {
-          _pages[1] = QueueScreen(key: UniqueKey(), initialTicket: ticket);
+          _queueScreen = QueueScreen(key: UniqueKey(), initialTicket: ticket);
           _currentIndex = 1;
         });
       },
@@ -159,20 +154,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ],
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Row(
-                          children: [
-                            Icon(Icons.notifications_active_outlined, color: Colors.white),
-                            SizedBox(width: 12),
-                            Text('Aucune nouvelle notification pour le moment.'),
-                          ],
-                        ),
-                        backgroundColor: isDark ? AppTheme.slateDark : AppTheme.primaryTeal,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        margin: const EdgeInsets.all(16),
-                      ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
                     );
                   },
                   color: AppTheme.primaryTeal,
@@ -294,16 +278,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             if (!widget.isGuest)
                               _buildPremiumActionCard(
                                 context,
-                                title: 'Ordonnances',
-                                subtitle: 'Vos prescriptions',
+                                title: loc.get('appointments') ?? 'Rendez-vous', // Temporary fallback if not in translation yet
+                                subtitle: 'Vos consultations',
+                                imagePath: 'assets/images/onboarding_medical.png', // Or another appropriate asset
+                                color: const Color(0xFF3B82F6),
+                                gradientColors: [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
+                                delay: 2,
+                                onTap: () => setState(() => _currentIndex = 3),
+                              ),
+                            if (!widget.isGuest)
+                              _buildPremiumActionCard(
+                                context,
+                                title: 'Dossier Médical',
+                                subtitle: 'Historique et Ordonnances',
                                 imagePath: 'assets/images/prescription_illustration.png',
                                 color: AppTheme.warning,
                                 gradientColors: [const Color(0xFFD97706), const Color(0xFFF59E0B)],
-                                delay: 2,
+                                delay: 3,
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const PrescriptionsScreen()),
+                                    MaterialPageRoute(builder: (_) => const MedicalRecordsScreen()),
                                   );
                                 },
                               ),
@@ -314,8 +309,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             imagePath: 'assets/images/settings_illustration.png',
                             color: AppTheme.accentPurple,
                             gradientColors: [const Color(0xFF7C3AED), const Color(0xFF8B5CF6)],
-                            delay: 3,
-                            onTap: () => setState(() => _currentIndex = 3),
+                            delay: 4,
+                            onTap: () => setState(() => _currentIndex = 4),
                           ),
                         ],
                       );
@@ -400,6 +395,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final loc = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    final _pages = [
+      _buildDashboard(),
+      _queueScreen,
+      const PharmacyScreen(),
+      const AppointmentsScreen(),
+      const SettingsScreen(),
+    ];
+    
     return Scaffold(
       extendBody: true, // Pour que le fond glisse sous la navigation
       body: Stack(
@@ -452,7 +455,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         _buildNavItem(0, Icons.home_outlined, Icons.home, loc.get('home'), isDark),
                         _buildNavItem(1, Icons.confirmation_number_outlined, Icons.confirmation_number, loc.get('queue'), isDark),
                         _buildNavItem(2, Icons.local_pharmacy_outlined, Icons.local_pharmacy, loc.get('pharmacy'), isDark),
-                        _buildNavItem(3, Icons.settings_outlined, Icons.settings, loc.get('settings'), isDark),
+                        _buildNavItem(3, Icons.calendar_today_outlined, Icons.calendar_today, 'Rendez-vous', isDark),
+                        _buildNavItem(4, Icons.settings_outlined, Icons.settings, loc.get('settings'), isDark),
                       ],
                     ),
                   ),

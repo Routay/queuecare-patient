@@ -29,6 +29,7 @@ class QueueSocket {
   void disconnect() {
     if (_channel != null) {
       _channel!.sink.close();
+      _channel = null;
       print('🔌 [WebSocket] Déconnecté');
     }
   }

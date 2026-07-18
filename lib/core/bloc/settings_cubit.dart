@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsState {
   final Locale locale;
@@ -31,23 +32,45 @@ class SettingsCubit extends Cubit<SettingsState> {
           locale: Locale('fr'),
           themeMode: ThemeMode.light,
           isSimplifiedMode: false,
-        ));
+        )) {
+    _loadSettings();
+  }
 
-  void toggleLanguage() {
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lang = prefs.getString('language') ?? 'fr';
+    final theme = prefs.getString('theme') ?? 'light';
+    final simplified = prefs.getBool('simplified') ?? false;
+
+    emit(SettingsState(
+      locale: Locale(lang),
+      themeMode: theme == 'dark' ? ThemeMode.dark : ThemeMode.light,
+      isSimplifiedMode: simplified,
+    ));
+  }
+
+  Future<void> toggleLanguage() async {
     final newLocale = state.locale.languageCode == 'fr' 
         ? const Locale('wo') 
         : const Locale('fr');
     emit(state.copyWith(locale: newLocale));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', newLocale.languageCode);
   }
 
-  void toggleTheme() {
+  Future<void> toggleTheme() async {
     final newTheme = state.themeMode == ThemeMode.light 
         ? ThemeMode.dark 
         : ThemeMode.light;
     emit(state.copyWith(themeMode: newTheme));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('theme', newTheme == ThemeMode.dark ? 'dark' : 'light');
   }
 
-  void toggleSimplifiedMode() {
-    emit(state.copyWith(isSimplifiedMode: !state.isSimplifiedMode));
+  Future<void> toggleSimplifiedMode() async {
+    final newValue = !state.isSimplifiedMode;
+    emit(state.copyWith(isSimplifiedMode: newValue));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('simplified', newValue);
   }
 }

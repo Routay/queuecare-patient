@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
+import 'package:queuecare_patient/core/database/local_database.dart';
+import 'package:queuecare_patient/features/appointments/appointment_booking_screen.dart';
+import 'package:queuecare_patient/core/widgets/shimmer_loading.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -11,6 +14,9 @@ class AppointmentsScreen extends StatefulWidget {
 class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProviderStateMixin {
   late AnimationController _bgAnimController;
   late AnimationController _listAnimController;
+  
+  List<Map<String, dynamic>> _appointments = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -25,6 +31,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
       duration: const Duration(milliseconds: 800),
     );
     _listAnimController.forward();
+    
+    _loadAppointments();
+  }
+
+  Future<void> _loadAppointments() async {
+    final apps = await LocalDatabase.instance.getAppointments();
+    if (mounted) {
+      setState(() {
+        _appointments = apps.reversed.toList(); // newest first
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -83,9 +101,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
           );
         },
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            children: [
+          child: RefreshIndicator(
+            onRefresh: _loadAppointments,
+            color: AppTheme.primaryTeal,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              children: [
               // Carte du prochain rendez-vous (mis en évidence)
               Container(
                 decoration: BoxDecoration(
@@ -212,15 +233,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
                   ],
                 ),
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                     ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Le calendrier de prise de rendez-vous sera affiché ici.'),
-                          backgroundColor: AppTheme.primaryTeal,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                      );
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AppointmentBookingScreen()),
+                    );
+                    if (result == true) {
+                      _loadAppointments();
+                    }
                   },
                   icon: const Icon(Icons.add_circle_outline, size: 22),
                   label: const Text('Prendre un nouveau rendez-vous'),
@@ -241,30 +261,39 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
               
               // Historique
               Text(
-                'Historique',
+                'Vos rendez-vous',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 16),
               
-              _buildHistoryCard(
-                context: context,
-                doctor: 'Dr. Mariama Sow',
-                department: 'Médecine Générale',
-                date: '02 Sept 2026',
-                status: 'Terminé',
-                isDark: isDark,
-                delay: 0,
-              ),
-              _buildHistoryCard(
-                context: context,
-                doctor: 'Dr. Ousmane Ndiaye',
-                department: 'Ophtalmologie',
-                date: '14 Juil 2026',
-                status: 'Terminé',
-                isDark: isDark,
-                delay: 1,
-              ),
+              if (_isLoading)
+                Column(
+                  children: List.generate(3, (index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ShimmerLoading(width: double.infinity, height: 80, isDark: isDark),
+                  )),
+                )
+              else if (_appointments.isEmpty)
+                const Center(child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Text('Aucun rendez-vous pour le moment.', style: TextStyle(color: Colors.grey)),
+                ))
+              else
+                ..._appointments.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final app = entry.value;
+                  return _buildHistoryCard(
+                    context: context,
+                    doctor: 'Dr. ${app['doctorId'] ?? 'Médecin'}', // In reality, fetch doctor name
+                    department: 'Consultation',
+                    date: '${app['date']} à ${app['startTime']}',
+                    status: app['status'] == 'pending' ? 'En attente' : 'Confirmé',
+                    isDark: isDark,
+                    delay: index,
+                  );
+                }),
             ],
+            ),
           ),
         ),
       ),
