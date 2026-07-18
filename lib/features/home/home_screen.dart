@@ -5,6 +5,7 @@ import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/widgets/glass_container.dart';
 import 'package:queuecare_patient/features/queue/queue_screen.dart';
+import 'package:queuecare_patient/features/queue/queue_booking_screen.dart';
 import 'package:queuecare_patient/features/pharmacy/pharmacy_screen.dart';
 import 'package:queuecare_patient/features/settings/settings_screen.dart';
 import 'package:queuecare_patient/features/appointments/appointments_screen.dart';
@@ -60,16 +61,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _showQRScanner(BuildContext context) {
-    QRScannerUtils.showQRScannerDialog(
+  void _takeTicket(BuildContext context) async {
+    final ticket = await Navigator.push(
       context,
-      onTicketScanned: (ticket) {
-        setState(() {
-          _queueScreen = QueueScreen(key: UniqueKey(), initialTicket: ticket);
-          _currentIndex = 1;
-        });
-      },
+      MaterialPageRoute(builder: (context) => const QueueBookingScreen()),
     );
+    if (ticket != null) {
+      setState(() {
+        _queueScreen = QueueScreen(key: UniqueKey(), initialTicket: ticket);
+        _currentIndex = 1;
+      });
+    }
   }
 
   Widget _buildDashboard() {
@@ -337,9 +339,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ],
               ),
               child: FloatingActionButton.extended(
-                onPressed: () => _showQRScanner(context),
-                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                label: const Text('Scanner QR', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                onPressed: () => _takeTicket(context),
+                icon: const Icon(Icons.confirmation_number, color: Colors.white),
+                label: const Text('Prendre un ticket', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                 backgroundColor: AppTheme.primaryTeal,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

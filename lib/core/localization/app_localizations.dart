@@ -15,6 +15,7 @@ class AppLocalizations {
     'fr': {
       'app_title': 'QueueCare SN',
       'welcome': 'Bienvenue sur QueueCare',
+      'welcome_back': 'Bon retour',
       'regular_patient': 'Patient Régulier',
       'occasional_patient': 'Patient Occasionnel',
       'login': 'Se Connecter',
@@ -64,6 +65,7 @@ class AppLocalizations {
     'wo': {
       'app_title': 'QueueCare SN',
       'welcome': 'Dalal jamm ci QueueCare',
+      'welcome_back': 'Mbégté moo nu taxa dajeewat',
       'regular_patient': 'Kuy wër saafara saasë',
       'occasional_patient': 'Kuy wër saafara yenn say',
       'login': 'Dugu ci',
