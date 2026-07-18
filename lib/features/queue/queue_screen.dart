@@ -5,7 +5,8 @@ import 'package:queuecare_patient/core/network/queue_socket.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
 import 'package:queuecare_patient/core/database/local_database.dart';
 import 'package:queuecare_patient/core/widgets/glass_container.dart';
-import 'package:queuecare_patient/core/utils/qr_scanner_utils.dart';
+import 'package:queuecare_patient/core/widgets/glass_container.dart';
+import 'package:queuecare_patient/features/queue/queue_booking_screen.dart';
 import 'package:queuecare_patient/core/services/notification_service.dart';
 
 class QueueScreen extends StatefulWidget {
@@ -720,13 +721,14 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
               const SizedBox(height: 32),
               InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  QRScannerUtils.showQRScannerDialog(
+                onTap: () async {
+                  final ticket = await Navigator.push(
                     context,
-                    onTicketScanned: (ticket) {
-                      _setupFromTicket(ticket);
-                    },
+                    MaterialPageRoute(builder: (context) => const QueueBookingScreen()),
                   );
+                  if (ticket != null) {
+                    _setupFromTicket(ticket);
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -743,7 +745,7 @@ class _QueueScreenState extends State<QueueScreen> with TickerProviderStateMixin
                       Icon(Icons.qr_code_scanner, color: AppTheme.primaryTeal, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        loc.get('scan_qr_button'),
+                        'Prendre un ticket',
                         style: TextStyle(
                           color: AppTheme.primaryTeal,
                           fontWeight: FontWeight.w600,
