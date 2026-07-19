@@ -1,0 +1,11 @@
+.git/
+.dart_tool/
+.idea/
+build/
+android/
+ios/
+linux/
+macos/
+windows/
+.metadata
+flutter_*.log
