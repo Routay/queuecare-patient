@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
+import 'package:queuecare_patient/core/database/local_database.dart';
+import 'package:queuecare_patient/core/widgets/shimmer_loading.dart';
 import 'package:queuecare_patient/features/payment/payment_screen.dart';
 
 class QueueBookingScreen extends StatefulWidget {
@@ -21,13 +23,30 @@ class _QueueBookingScreenState extends State<QueueBookingScreen> {
   List<dynamic> _departments = [];
   Map<String, dynamic>? _selectedDepartment;
 
+  // Patient profile loaded from local storage
+  String _patientName = 'Patient';
+  String _patientPhone = 'N/A';
+
   @override
   void initState() {
     super.initState();
-    _loadHospitals();
+    _loadProfileAndHospitals();
   }
 
-  Future<void> _loadHospitals() async {
+  Future<void> _loadProfileAndHospitals() async {
+    // Load saved profile in parallel with hospitals
+    final profile = await LocalDatabase.instance.getUserProfile();
+    if (mounted) {
+      setState(() {
+        _patientName = (profile['name'] as String?)?.isNotEmpty == true
+            ? profile['name'] as String
+            : 'Patient';
+        _patientPhone = (profile['phone'] as String?)?.isNotEmpty == true
+            ? profile['phone'] as String
+            : 'N/A';
+      });
+    }
+
     try {
       final response = await ApiClient().dio.get('/hospitals/');
       if (mounted) {
@@ -85,9 +104,9 @@ class _QueueBookingScreenState extends State<QueueBookingScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => PaymentScreen(
-          amount: 1500, // Fixed price for ticket
-          patientName: 'Patient',
-          patientPhone: 'N/A',
+          amount: 1500,
+          patientName: _patientName,
+          patientPhone: _patientPhone,
           paymentType: 'ticket',
         ),
       ),

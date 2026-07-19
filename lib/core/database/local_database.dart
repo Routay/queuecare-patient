@@ -81,4 +81,26 @@ class LocalDatabase {
     notifications.add(notification);
     await saveNotifications(notifications);
   }
+
+  // --- User Profile Operations ---
+  static const String _profileKey = 'user_profile';
+
+  Future<void> saveUserProfile(Map<String, dynamic> profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_profileKey, jsonEncode(profile));
+  }
+
+  Future<Map<String, dynamic>> getUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_profileKey);
+    if (jsonString != null && jsonString.isNotEmpty) {
+      return jsonDecode(jsonString) as Map<String, dynamic>;
+    }
+    return {'name': '', 'phone': ''};
+  }
+
+  Future<void> clearUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_profileKey);
+  }
 }
