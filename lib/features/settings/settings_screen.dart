@@ -4,6 +4,7 @@ import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/features/auth/auth_screen.dart';
 import 'package:queuecare_patient/core/bloc/settings_cubit.dart';
+import 'package:queuecare_patient/core/database/local_database.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,9 +17,13 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   late AnimationController _bgAnimController;
   late AnimationController _entranceAnimController;
 
+  String _userName = 'Patient Connecté';
+  String _userPhone = 'N/A';
+
   @override
   void initState() {
     super.initState();
+    _loadProfile();
     _bgAnimController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
@@ -53,6 +58,79 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
         );
       },
       child: child,
+    );
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await LocalDatabase.instance.getUserProfile();
+    if (mounted) {
+      setState(() {
+        _userName = (profile['name'] as String?)?.isNotEmpty == true ? profile['name'] as String : 'Patient Connecté';
+        _userPhone = (profile['phone'] as String?)?.isNotEmpty == true ? profile['phone'] as String : 'N/A';
+      });
+    }
+  }
+
+  Future<void> _showEditProfileDialog() async {
+    final nameController = TextEditingController(text: _userName == 'Patient Connecté' ? '' : _userName);
+    final phoneController = TextEditingController(text: _userPhone == 'N/A' ? '' : _userPhone);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Modifier le profil', style: TextStyle(color: isDark ? Colors.white : AppTheme.slateDark)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              style: TextStyle(color: isDark ? Colors.white : AppTheme.slateDark),
+              decoration: InputDecoration(
+                labelText: 'Nom complet',
+                labelStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300)),
+                focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.primaryTeal)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              style: TextStyle(color: isDark ? Colors.white : AppTheme.slateDark),
+              decoration: InputDecoration(
+                labelText: 'Numéro de téléphone',
+                labelStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300)),
+                focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.primaryTeal)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Annuler', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await LocalDatabase.instance.saveUserProfile({
+                'name': nameController.text.trim(),
+                'phone': phoneController.text.trim(),
+              });
+              Navigator.pop(ctx);
+              _loadProfile();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -184,23 +262,23 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                               child: const Icon(Icons.person_rounded, size: 32, color: Colors.white),
                             ),
                             const SizedBox(width: 16),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Patient Connecté',
-                                    style: TextStyle(
+                                    _userName,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: -0.3,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Gérez vos préférences',
-                                    style: TextStyle(
+                                    _userPhone == 'N/A' ? 'Gérez vos préférences' : _userPhone,
+                                    style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
@@ -209,13 +287,16 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(14),
+                            GestureDetector(
+                              onTap: _showEditProfileDialog,
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(Icons.edit_outlined, color: Colors.white, size: 18),
                               ),
-                              child: const Icon(Icons.edit_outlined, color: Colors.white, size: 18),
                             ),
                           ],
                         ),
