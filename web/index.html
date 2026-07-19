@@ -139,6 +139,24 @@
   </div>
 
   <script>
+    // NUCLEAR OPTION: Destroy any existing service workers from past deployments
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Old ServiceWorker unregistered.');
+        }
+      });
+      // Also clear all caches
+      caches.keys().then(function(names) {
+        for (let name of names) {
+          caches.delete(name);
+        }
+      });
+    }
+  </script>
+
+  <script>
     {{flutter_js}}
     {{flutter_build_config}}
 
