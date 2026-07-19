@@ -3,6 +3,7 @@ import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
 import 'package:queuecare_patient/core/database/local_database.dart';
 import 'package:queuecare_patient/core/services/notification_service.dart';
+import 'package:queuecare_patient/features/payment/payment_history_screen.dart';
 import 'dart:ui' as ui;
 
 class PaymentScreen extends StatefulWidget {
@@ -230,6 +231,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           },
                           child: const Text('Continuer', style: TextStyle(fontSize: 16, color: Colors.white)),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PaymentHistoryScreen(
+                                patientPhone: widget.patientPhone.isEmpty ? 'N/A' : widget.patientPhone,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.history, color: Colors.white70),
+                        label: const Text('Voir l\'historique des paiements', style: TextStyle(color: Colors.white70)),
                       ),
                     ],
                   ),
