@@ -277,33 +277,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             delay: 1,
                             onTap: () => setState(() => _currentIndex = 2),
                           ),
-                            if (!widget.isGuest)
-                              _buildPremiumActionCard(
+                          _buildPremiumActionCard(
+                            context,
+                            title: 'Rendez-vous',
+                            subtitle: 'Prendre un rendez-vous',
+                            imagePath: 'assets/images/onboarding_medical.png',
+                            color: const Color(0xFF3B82F6),
+                            gradientColors: [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
+                            delay: 2,
+                            onTap: () => setState(() => _currentIndex = 3),
+                          ),
+                          _buildPremiumActionCard(
+                            context,
+                            title: 'Dossier Médical',
+                            subtitle: 'Historique et Ordonnances',
+                            imagePath: 'assets/images/prescription_illustration.png',
+                            color: AppTheme.warning,
+                            gradientColors: [const Color(0xFFD97706), const Color(0xFFF59E0B)],
+                            delay: 3,
+                            onTap: () {
+                              Navigator.push(
                                 context,
-                                title: loc.get('appointments') ?? 'Rendez-vous', // Temporary fallback if not in translation yet
-                                subtitle: 'Vos consultations',
-                                imagePath: 'assets/images/onboarding_medical.png', // Or another appropriate asset
-                                color: const Color(0xFF3B82F6),
-                                gradientColors: [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
-                                delay: 2,
-                                onTap: () => setState(() => _currentIndex = 3),
-                              ),
-                            if (!widget.isGuest)
-                              _buildPremiumActionCard(
-                                context,
-                                title: 'Dossier Médical',
-                                subtitle: 'Historique et Ordonnances',
-                                imagePath: 'assets/images/prescription_illustration.png',
-                                color: AppTheme.warning,
-                                gradientColors: [const Color(0xFFD97706), const Color(0xFFF59E0B)],
-                                delay: 3,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const MedicalRecordsScreen()),
-                                  );
-                                },
-                              ),
+                                MaterialPageRoute(builder: (_) => const MedicalRecordsScreen()),
+                              );
+                            },
+                          ),
                           _buildPremiumActionCard(
                             context,
                             title: loc.get('settings'),
