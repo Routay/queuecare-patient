@@ -17,20 +17,19 @@
 #!/bin/bash
 set -e
 
-echo "Cloning Flutter 3.35.4..."
+echo "Cloning Flutter..."
 
 git clone https://github.com/flutter/flutter.git
+
 cd flutter
-git checkout 3.35.4
+git fetch --tags
+git checkout refs/tags/3.35.4
 cd ..
 
 export PATH="$PATH:$(pwd)/flutter/bin"
 
-echo "Flutter version:"
 flutter --version
 
-echo "Getting dependencies..."
 flutter pub get
 
-echo "Building..."
 flutter build web --release

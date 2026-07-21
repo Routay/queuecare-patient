@@ -3,7 +3,8 @@ import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/features/home/home_screen.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/widgets/glass_container.dart';
-
+import 'package:queuecare_patient/core/database/local_database.dart';
+import 'package:queuecare_patient/features/auth/register_screen.dart';
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -72,47 +73,69 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 
   void _login() async {
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
+
+    if (phone.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez remplir tous les champs.')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
+    final success = await LocalDatabase.instance.loginUser(phone, password);
     setState(() => _isLoading = false);
     
+    if (success) {
+      await LocalDatabase.instance.setGuestSession(false);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(isGuest: false),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.05),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 600),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Identifiants incorrects.')),
+        );
+      }
+    }
+  }
+
+  void _guestLogin() async {
+    await LocalDatabase.instance.setGuestSession(true);
     if (mounted) {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+          pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(isGuest: true),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.05),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                child: child,
-              ),
+              child: child,
             );
           },
-          transitionDuration: const Duration(milliseconds: 600),
+          transitionDuration: const Duration(milliseconds: 500),
         ),
       );
     }
-  }
-
-  void _guestLogin() {
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(isGuest: true),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
-    );
   }
 
   Widget _buildAnimatedChild({
@@ -471,6 +494,26 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                           ),
                                     ),
                                   ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Create account link
+                            Align(
+                              alignment: Alignment.center,
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.primaryTeal,
+                                ),
+                                child: const Text(
+                                  'Pas de compte ? S\'inscrire',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ),

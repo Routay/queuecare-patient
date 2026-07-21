@@ -103,4 +103,68 @@ class LocalDatabase {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_profileKey);
   }
+
+  // --- Authentication Operations ---
+  static const String _usersKey = 'registered_users';
+  static const String _sessionKey = 'current_session_phone';
+
+  Future<void> registerUser(String name, String phone, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String usersJson = prefs.getString(_usersKey) ?? '{}';
+    Map<String, dynamic> users = jsonDecode(usersJson);
+
+    if (users.containsKey(phone)) {
+      throw Exception('Ce numéro de téléphone est déjà utilisé.');
+    }
+
+    users[phone] = {
+      'name': name,
+      'phone': phone,
+      'password': password,
+    };
+
+    await prefs.setString(_usersKey, jsonEncode(users));
+    
+    // Automatically log in and save profile
+    await prefs.setString(_sessionKey, phone);
+    await saveUserProfile({'name': name, 'phone': phone});
+  }
+
+  Future<bool> loginUser(String phone, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String usersJson = prefs.getString(_usersKey) ?? '{}';
+    Map<String, dynamic> users = jsonDecode(usersJson);
+
+    if (users.containsKey(phone)) {
+      final user = users[phone];
+      if (user['password'] == password) {
+        await prefs.setString(_sessionKey, phone);
+        await saveUserProfile({'name': user['name'], 'phone': user['phone']});
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_sessionKey);
+    await prefs.remove('is_guest_session');
+    await clearUserProfile();
+  }
+
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey(_sessionKey);
+  }
+
+  Future<void> setGuestSession(bool isGuest) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_guest_session', isGuest);
+  }
+
+  Future<bool> isGuestSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('is_guest_session') ?? false;
+  }
 }

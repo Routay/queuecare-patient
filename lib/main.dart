@@ -6,22 +6,37 @@ import 'package:queuecare_patient/core/localization/app_localizations.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/features/auth/auth_screen.dart';
 import 'package:queuecare_patient/features/auth/onboarding_screen.dart';
+import 'package:queuecare_patient/features/home/home_screen.dart';
 import 'package:queuecare_patient/core/bloc/settings_cubit.dart';
+import 'package:queuecare_patient/core/database/local_database.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Vérification du premier lancement
+  // Vérification du premier lancement et de la session
   final prefs = await SharedPreferences.getInstance();
   final seenOnboarding = prefs.getBool('seen_onboarding') ?? false;
+  final isLoggedIn = await LocalDatabase.instance.isLoggedIn();
+  final isGuest = await LocalDatabase.instance.isGuestSession();
 
-  runApp(QueueCareApp(seenOnboarding: seenOnboarding));
+  runApp(QueueCareApp(
+    seenOnboarding: seenOnboarding,
+    isLoggedIn: isLoggedIn,
+    isGuest: isGuest,
+  ));
 }
 
 class QueueCareApp extends StatelessWidget {
   final bool seenOnboarding;
+  final bool isLoggedIn;
+  final bool isGuest;
   
-  const QueueCareApp({super.key, required this.seenOnboarding});
+  const QueueCareApp({
+    super.key, 
+    required this.seenOnboarding,
+    required this.isLoggedIn,
+    required this.isGuest,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +93,11 @@ class QueueCareApp extends StatelessWidget {
               );
             },
             
-            home: seenOnboarding ? const AuthScreen() : const OnboardingScreen(),
+            home: !seenOnboarding 
+                ? const OnboardingScreen() 
+                : (isLoggedIn || isGuest) 
+                    ? HomeScreen(isGuest: isGuest) 
+                    : const AuthScreen(),
           );
         },
       ),

@@ -75,7 +75,14 @@ class _QueueBookingScreenState extends State<QueueBookingScreen> {
       final response = await ApiClient().dio.get('/queue/${_selectedHospital!['id']}/departments/list');
       if (mounted) {
         setState(() {
-          _departments = response.data;
+          final data = response.data;
+          if (data is Map<String, dynamic> && data.containsKey('data')) {
+            _departments = data['data'];
+          } else if (data is List) {
+            _departments = data;
+          } else {
+            _departments = [];
+          }
           _isLoading = false;
         });
       }

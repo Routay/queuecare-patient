@@ -533,11 +533,14 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                                     ],
                                   ),
                                   child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pop(ctx);
-                                      Navigator.of(context, rootNavigator: true).pushReplacement(
-                                        MaterialPageRoute(builder: (_) => const AuthScreen()),
-                                      );
+                                    onPressed: () async {
+                                      await LocalDatabase.instance.logout();
+                                      if (mounted) {
+                                        Navigator.pop(ctx);
+                                        Navigator.of(context, rootNavigator: true).pushReplacement(
+                                          MaterialPageRoute(builder: (_) => const AuthScreen()),
+                                        );
+                                      }
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.danger,
