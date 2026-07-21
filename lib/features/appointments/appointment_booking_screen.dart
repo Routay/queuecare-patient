@@ -23,6 +23,17 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   List<dynamic> _departments = [];
   Map<String, dynamic>? _selectedDepartment;
 
+  // Départements de fallback si l'API ne retourne rien
+  static const List<Map<String, dynamic>> _defaultDepartments = [
+    {'id': 'dept_1', 'name': 'Médecine Générale'},
+    {'id': 'dept_2', 'name': 'Pédiatrie'},
+    {'id': 'dept_3', 'name': 'Gynécologie'},
+    {'id': 'dept_4', 'name': 'Cardiologie'},
+    {'id': 'dept_5', 'name': 'Ophtalmologie'},
+    {'id': 'dept_6', 'name': 'ORL'},
+    {'id': 'dept_7', 'name': 'Dermatologie'},
+  ];
+
   List<dynamic> _doctors = [];
   Map<String, dynamic>? _selectedDoctor;
 
@@ -81,12 +92,21 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
           } else {
             _departments = [];
           }
+          // Fallback: utiliser les départements par défaut si l'API retourne une liste vide
+          if (_departments.isEmpty) {
+            _departments = List<Map<String, dynamic>>.from(_defaultDepartments);
+          }
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() { _error = "Impossible de charger les départements."; _isLoading = false; });
+        setState(() {
+          // Fallback en cas d'erreur: utiliser les départements par défaut
+          _departments = List<Map<String, dynamic>>.from(_defaultDepartments);
+          _error = null;
+          _isLoading = false;
+        });
       }
     }
   }

@@ -175,6 +175,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
   }
 
   void _showMedicineAvailabilitySheet(BuildContext context, Map<String, dynamic> medicine) {
+    final loc = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<Map<String, dynamic>> availablePharms = List<Map<String, dynamic>>.from(medicine['availablePharmacies']);
     
@@ -242,7 +243,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "${availablePharms.length} pharmacie(s) à proximité",
+                          "${availablePharms.length} ${loc.get('pharmacies_nearby_count')}",
                           style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.success,
@@ -263,7 +264,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
               child: availablePharms.isEmpty
                 ? Center(
                     child: Text(
-                      "Rupture de stock dans les environs.",
+                      loc.get('out_of_stock_area'),
                       style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
                     ),
                   )
@@ -401,7 +402,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            _selectedTab == 0 ? 'Trouver un médicament' : 'Pharmacies à proximité',
+                            _selectedTab == 0 ? loc.get('find_medicine') : loc.get('pharmacies_nearby'),
                             style: TextStyle(
                               color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
                               fontSize: 13,
@@ -447,7 +448,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                "Médicaments",
+                                loc.get('medicines'),
                                 style: TextStyle(
                                   fontWeight: _selectedTab == 0 ? FontWeight.w700 : FontWeight.w600,
                                   color: _selectedTab == 0 
@@ -482,7 +483,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                "Pharmacies",
+                                loc.get('pharmacies'),
                                 style: TextStyle(
                                   fontWeight: _selectedTab == 1 ? FontWeight.w700 : FontWeight.w600,
                                   color: _selectedTab == 1 
@@ -520,7 +521,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: _selectedTab == 0 ? loc.get('search_medicine') : 'Rechercher une pharmacie...',
+                        hintText: _selectedTab == 0 ? loc.get('search_medicine') : loc.get('search_pharmacy'),
                         hintStyle: TextStyle(
                           color: isDark ? Colors.white30 : const Color(0xFF94A3B8),
                           fontWeight: FontWeight.w400,
@@ -632,7 +633,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
               ? _buildShimmerLoading(isDark)
               : _error != null
                 ? _buildErrorState(isDark)
-                : (_selectedTab == 0 ? _buildMedicinesList(isDark) : _buildPharmaciesList(isDark)),
+                : (_selectedTab == 0 ? _buildMedicinesList(isDark, loc) : _buildPharmaciesList(isDark, loc)),
           ),
         ],
       ),
@@ -722,11 +723,11 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildMedicinesList(bool isDark) {
+  Widget _buildMedicinesList(bool isDark, AppLocalizations loc) {
     if (_filteredMedicines.isEmpty) {
       return Center(
         child: Text(
-          "Aucun médicament trouvé.",
+          loc.get('no_medicine_found'),
           style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
         ),
       );
@@ -820,7 +821,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          isAvailable ? 'Disponible' : 'Rupture',
+                          isAvailable ? loc.get('available') : loc.get('out_of_stock'),
                           style: TextStyle(
                             color: isAvailable ? AppTheme.success : AppTheme.danger,
                             fontWeight: FontWeight.w700,
@@ -839,11 +840,11 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildPharmaciesList(bool isDark) {
+  Widget _buildPharmaciesList(bool isDark, AppLocalizations loc) {
     if (_filteredPharmacies.isEmpty) {
       return Center(
         child: Text(
-          "Aucune pharmacie trouvée.",
+          loc.get('no_pharmacy_found'),
           style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
         ),
       );

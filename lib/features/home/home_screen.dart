@@ -277,31 +277,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             delay: 1,
                             onTap: () => setState(() => _currentIndex = 2),
                           ),
-                          _buildPremiumActionCard(
-                            context,
-                            title: 'Rendez-vous',
-                            subtitle: 'Prendre un rendez-vous',
-                            imagePath: 'assets/images/onboarding_medical.png',
-                            color: const Color(0xFF3B82F6),
-                            gradientColors: [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
-                            delay: 2,
-                            onTap: () => setState(() => _currentIndex = 3),
-                          ),
-                          _buildPremiumActionCard(
-                            context,
-                            title: 'Dossier Médical',
-                            subtitle: 'Historique et Ordonnances',
-                            imagePath: 'assets/images/prescription_illustration.png',
-                            color: AppTheme.warning,
-                            gradientColors: [const Color(0xFFD97706), const Color(0xFFF59E0B)],
-                            delay: 3,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const MedicalRecordsScreen()),
-                              );
-                            },
-                          ),
+                          // Rendez-vous: visible uniquement pour les patients connectés
+                          if (!widget.isGuest)
+                            _buildPremiumActionCard(
+                              context,
+                              title: 'Rendez-vous',
+                              subtitle: 'Prendre un rendez-vous',
+                              imagePath: 'assets/images/onboarding_medical.png',
+                              color: const Color(0xFF3B82F6),
+                              gradientColors: [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
+                              delay: 2,
+                              onTap: () => setState(() => _currentIndex = 3),
+                            ),
+                          // Dossier Médical: visible uniquement pour les patients connectés
+                          if (!widget.isGuest)
+                            _buildPremiumActionCard(
+                              context,
+                              title: 'Dossier Médical',
+                              subtitle: 'Historique et Ordonnances',
+                              imagePath: 'assets/images/prescription_illustration.png',
+                              color: AppTheme.warning,
+                              gradientColors: [const Color(0xFFD97706), const Color(0xFFF59E0B)],
+                              delay: 3,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const MedicalRecordsScreen()),
+                                );
+                              },
+                            ),
                           _buildPremiumActionCard(
                             context,
                             title: loc.get('settings'),
@@ -309,8 +313,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             imagePath: 'assets/images/settings_illustration.png',
                             color: AppTheme.accentPurple,
                             gradientColors: [const Color(0xFF7C3AED), const Color(0xFF8B5CF6)],
-                            delay: 4,
-                            onTap: () => setState(() => _currentIndex = 4),
+                            delay: widget.isGuest ? 2 : 4,
+                            onTap: () => setState(() => _currentIndex = widget.isGuest ? 3 : 4),
                           ),
                         ],
                       );
@@ -395,13 +399,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final loc = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    final _pages = [
+    // Pages dynamiques selon le type de patient
+    final List<Widget> _pages = [
       _buildDashboard(),
       _queueScreen,
       const PharmacyScreen(),
-      const AppointmentsScreen(),
+      if (!widget.isGuest) const AppointmentsScreen(),
       const SettingsScreen(),
     ];
+    
+    // Index des paramètres selon le mode
+    final int settingsIndex = widget.isGuest ? 3 : 4;
     
     return Scaffold(
       extendBody: true, // Pour que le fond glisse sous la navigation
@@ -455,8 +463,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         _buildNavItem(0, Icons.home_outlined, Icons.home, loc.get('home'), isDark),
                         _buildNavItem(1, Icons.confirmation_number_outlined, Icons.confirmation_number, loc.get('queue'), isDark),
                         _buildNavItem(2, Icons.local_pharmacy_outlined, Icons.local_pharmacy, loc.get('pharmacy'), isDark),
-                        _buildNavItem(3, Icons.calendar_today_outlined, Icons.calendar_today, 'Rendez-vous', isDark),
-                        _buildNavItem(4, Icons.settings_outlined, Icons.settings, loc.get('settings'), isDark),
+                        if (!widget.isGuest)
+                          _buildNavItem(3, Icons.calendar_today_outlined, Icons.calendar_today, 'Rendez-vous', isDark),
+                        _buildNavItem(settingsIndex, Icons.settings_outlined, Icons.settings, loc.get('settings'), isDark),
                       ],
                     ),
                   ),

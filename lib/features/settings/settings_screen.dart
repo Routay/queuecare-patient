@@ -446,7 +446,76 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                             ),
                             child: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 18),
                           ),
-                          onTap: () {},
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              isScrollControlled: true,
+                              builder: (ctx) => Container(
+                                height: MediaQuery.of(context).size.height * 0.7,
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 12, bottom: 20),
+                                      width: 40,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: isDark ? Colors.white24 : Colors.black12,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.verified_user_outlined, color: Color(0xFF10B981), size: 28),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Confidentialité',
+                                            style: TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.w800,
+                                              color: isDark ? Colors.white : AppTheme.slateDark,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                                        child: Text(
+                                          '''QueueCare accorde une grande importance à la confidentialité de vos données médicales.\n\n1. Collecte des données\nVos informations (nom, téléphone) sont stockées localement sur votre appareil. Si vous créez un compte, les données sont sécurisées sur nos serveurs conformément aux normes médicales en vigueur.\n\n2. Utilisation des données\nNous utilisons vos informations uniquement pour:\n- Faciliter la prise de tickets et de rendez-vous.\n- Vous alerter lorsque c'est votre tour.\n- Maintenir l'historique de vos ordonnances.\n\n3. Partage\nAucune donnée personnelle n'est revendue à des tiers. Les hôpitaux et pharmacies ne voient que les informations nécessaires pour vous identifier lors de votre passage.\n\n4. Vos droits\nVous pouvez à tout moment demander la suppression de votre compte et de vos données depuis les paramètres de votre profil ou en contactant notre support.''',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                            height: 1.6,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: ElevatedButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppTheme.primaryTeal,
+                                          minimumSize: const Size(double.infinity, 50),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                        ),
+                                        child: const Text('Fermer', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 16)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
