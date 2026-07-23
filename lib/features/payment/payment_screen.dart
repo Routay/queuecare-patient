@@ -137,9 +137,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 else
                   Column(
                     children: [
-                      _buildOperatorCard('Wave', Colors.lightBlue, Icons.waves, isDark),
+                      _buildOperatorCard('Wave', const Color(0xFF1DB3EB), 'assets/images/wave_logo.png', isDark),
                       const SizedBox(height: 16),
-                      _buildOperatorCard('Orange Money', Colors.deepOrange, Icons.monetization_on, isDark),
+                      _buildOperatorCard('Orange Money', const Color(0xFFFF6600), 'assets/images/orange_money_logo.png', isDark),
                     ],
                   ),
               ],
@@ -150,7 +150,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildOperatorCard(String name, Color color, IconData icon, bool isDark) {
+  Widget _buildOperatorCard(String name, Color color, String imagePath, bool isDark) {
     return GestureDetector(
       onTap: () => _processPayment(name),
       child: Container(
@@ -158,7 +158,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.5), width: 2),
+          border: Border.all(color: color.withOpacity(0.5), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: color.withOpacity(0.1),
@@ -170,9 +170,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 56,
+              height: 56,
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 32),
+              child: Image.asset(imagePath, fit: BoxFit.contain),
             ),
             const SizedBox(width: 16),
             Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

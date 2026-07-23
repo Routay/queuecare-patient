@@ -189,7 +189,7 @@ class _PharmacyDetailScreenState extends State<PharmacyDetailScreen> with Single
                             child: Padding(
                               padding: const EdgeInsets.all(10),
                               child: Image.asset(
-                                'assets/images/pharmacy_illustration.png',
+                                'assets/images/pharmacy_logo.png',
                                 fit: BoxFit.contain,
                               ),
                             ),

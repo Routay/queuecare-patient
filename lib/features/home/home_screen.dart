@@ -271,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             context,
                             title: loc.get('pharmacy'),
                             subtitle: 'Trouver une pharmacie',
-                            imagePath: 'assets/images/pharmacy_illustration.png',
+                            imagePath: 'assets/images/pharmacy_logo.png',
                             color: AppTheme.success,
                             gradientColors: [const Color(0xFF059669), const Color(0xFF10B981)],
                             delay: 1,

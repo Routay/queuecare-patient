@@ -27,7 +27,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     {
       "title": "Trouvez vos médicaments",
       "description": "Fini l'errance pharmaceutique. Géolocalisez les pharmacies de garde et vérifiez la disponibilité de vos prescriptions.",
-      "image": "assets/images/pharmacy_illustration.png",
+      "image": "assets/images/pharmacy_logo.png",
       "color": AppTheme.success,
       "gradientColors": [const Color(0xFF059669), const Color(0xFF10B981)],
     },

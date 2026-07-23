@@ -384,7 +384,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Image.asset(
-                          'assets/images/pharmacy_illustration.png',
+                          'assets/images/pharmacy_logo.png',
                           width: 28,
                           height: 28,
                         ),
@@ -920,7 +920,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
                           child: Padding(
                             padding: const EdgeInsets.all(8),
                             child: Image.asset(
-                              'assets/images/pharmacy_illustration.png',
+                              'assets/images/pharmacy_logo.png',
                               fit: BoxFit.contain,
                             ),
                           ),

@@ -3,6 +3,7 @@ import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/database/local_database.dart';
 import 'package:queuecare_patient/core/network/api_client.dart';
 import 'package:queuecare_patient/core/widgets/shimmer_loading.dart';
+import 'package:queuecare_patient/features/prescriptions/prescription_order_screen.dart';
 import 'dart:ui' as ui;
 
 class MedicalRecordsScreen extends StatefulWidget {
@@ -236,6 +237,50 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
               ],
             ),
           )).toList(),
+          
+          if (prescription['status'] == 'pending') ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PrescriptionOrderScreen(prescription: prescription),
+                    ),
+                  ).then((_) => _loadRecord()); // Reload to update status if ordered
+                },
+                icon: const Icon(Icons.storefront, color: Colors.white),
+                label: const Text('Commander en Pharmacie', style: TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+            ),
+          ],
+          if (prescription['status'] == 'ordered') ...[
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.warning.withOpacity(0.5)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.hourglass_top, color: AppTheme.warning, size: 20),
+                  SizedBox(width: 8),
+                  Text('Commande envoyée', style: TextStyle(color: AppTheme.warning, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
