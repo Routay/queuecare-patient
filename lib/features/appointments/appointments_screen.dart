@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:queuecare_patient/core/theme/app_theme.dart';
 import 'package:queuecare_patient/core/database/local_database.dart';
+import 'package:queuecare_patient/core/network/api_client.dart';
 import 'package:queuecare_patient/features/appointments/appointment_booking_screen.dart';
 import 'package:queuecare_patient/core/widgets/shimmer_loading.dart';
+import 'package:intl/intl.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -16,6 +18,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
   late AnimationController _listAnimController;
   
   List<Map<String, dynamic>> _appointments = [];
+  Map<String, dynamic>? _nextAppointment;
   bool _isLoading = true;
 
   @override
@@ -36,12 +39,93 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
   }
 
   Future<void> _loadAppointments() async {
-    final apps = await LocalDatabase.instance.getAppointments();
-    if (mounted) {
-      setState(() {
-        _appointments = apps.reversed.toList(); // newest first
-        _isLoading = false;
-      });
+    setState(() => _isLoading = true);
+    
+    try {
+      // Fetch from backend API to get real-time status updates
+      final profile = await LocalDatabase.instance.getUserProfile();
+      final phone = profile['phone'] ?? '';
+      
+      if (phone.isNotEmpty) {
+        final response = await ApiClient().dio.get('/appointments/?patientPhone=$phone');
+        final List<dynamic> serverApps = response.data['data'] ?? [];
+        
+        if (mounted) {
+          final apps = serverApps
+              .map((a) => Map<String, dynamic>.from(a))
+              .toList();
+          
+          // Sort by date descending (newest first)
+          apps.sort((a, b) {
+            final dateA = a['date'] ?? '';
+            final dateB = b['date'] ?? '';
+            final cmp = dateB.compareTo(dateA);
+            if (cmp != 0) return cmp;
+            final timeA = a['startTime'] ?? '';
+            final timeB = b['startTime'] ?? '';
+            return timeB.compareTo(timeA);
+          });
+          
+          // Also sync local storage
+          await LocalDatabase.instance.saveAppointments(apps);
+          
+          // Find next upcoming appointment (confirmed or pending, date >= today)
+          final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+          Map<String, dynamic>? next;
+          for (var app in apps) {
+            final date = app['date'] ?? '';
+            final status = app['status'] ?? '';
+            if (date.compareTo(today) >= 0 && 
+                (status == 'confirmed' || status == 'pending')) {
+              if (next == null || date.compareTo(next['date'] ?? '') < 0) {
+                next = app;
+              }
+            }
+          }
+          
+          setState(() {
+            _appointments = apps;
+            _nextAppointment = next;
+            _isLoading = false;
+          });
+          _listAnimController.reset();
+          _listAnimController.forward();
+        }
+      } else {
+        // Fallback to local storage if no phone
+        final apps = await LocalDatabase.instance.getAppointments();
+        if (mounted) {
+          setState(() {
+            _appointments = apps.reversed.toList();
+            _nextAppointment = null;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      // Fallback to local storage on network error
+      debugPrint("Erreur de chargement des rendez-vous: $e");
+      final apps = await LocalDatabase.instance.getAppointments();
+      if (mounted) {
+        final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        Map<String, dynamic>? next;
+        for (var app in apps) {
+          final date = app['date'] ?? '';
+          final status = app['status'] ?? '';
+          if (date.compareTo(today) >= 0 && 
+              (status == 'confirmed' || status == 'pending')) {
+            if (next == null || date.compareTo(next['date'] ?? '') < 0) {
+              next = app;
+            }
+          }
+        }
+        
+        setState(() {
+          _appointments = apps.reversed.toList();
+          _nextAppointment = next;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -50,6 +134,48 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
     _bgAnimController.dispose();
     _listAnimController.dispose();
     super.dispose();
+  }
+
+  // Get status label and color
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'confirmed': return 'Confirmé';
+      case 'cancelled': return 'Annulé';
+      case 'completed': return 'Terminé';
+      case 'pending':
+      default: return 'En attente';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'confirmed': return AppTheme.success;
+      case 'cancelled': return AppTheme.danger;
+      case 'completed': return const Color(0xFF3B82F6); // Blue
+      case 'pending':
+      default: return const Color(0xFFF59E0B); // Amber/Orange
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'confirmed': return Icons.check_circle_outline;
+      case 'cancelled': return Icons.cancel_outlined;
+      case 'completed': return Icons.task_alt;
+      case 'pending':
+      default: return Icons.hourglass_bottom_rounded;
+    }
+  }
+
+  String _formatDateDisplay(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+      final monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+      return '${dayNames[date.weekday - 1]} ${date.day} ${monthNames[date.month - 1]}';
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   @override
@@ -107,115 +233,56 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               children: [
-              // Carte du prochain rendez-vous (mis en évidence)
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryTeal.withOpacity(isDark ? 0.2 : 0.3),
-                      blurRadius: 24,
-                      spreadRadius: -6,
-                      offset: const Offset(0, 8),
-                    )
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
+              // Carte du prochain rendez-vous — DYNAMIQUE
+              if (_nextAppointment != null)
+                _buildNextAppointmentCard(isDark),
+              
+              // Empty state when no upcoming appointment
+              if (_nextAppointment == null && !_isLoading)
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    color: isDark ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFFF8FAFC),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
-                          ),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryTeal.withOpacity(0.1),
+                          shape: BoxShape.circle,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(Icons.event_outlined, color: Colors.white, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'PROCHAIN RENDEZ-VOUS',
-                                  style: TextStyle(
-                                    color: Colors.white, 
-                                    fontWeight: FontWeight.w700, 
-                                    letterSpacing: 0.5,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Dr. Amadou Diallo',
-                              style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Cardiologie - Hôpital Principal',
-                              style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 15, fontWeight: FontWeight.w500),
-                            ),
-                            const SizedBox(height: 24),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withOpacity(0.2)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.calendar_today_rounded, color: Colors.white.withOpacity(0.9), size: 18),
-                                      const SizedBox(width: 8),
-                                      const Text('Jeu 18 Oct', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.access_time_rounded, color: Colors.white.withOpacity(0.9), size: 18),
-                                      const SizedBox(width: 8),
-                                      const Text('10:30', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          ],
+                        child: Icon(
+                          Icons.calendar_today_outlined,
+                          color: AppTheme.primaryTeal,
+                          size: 32,
                         ),
                       ),
-                      // Decorative circle
-                      Positioned(
-                        top: -30,
-                        right: -30,
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
-                          ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Aucun rendez-vous à venir',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: isDark ? Colors.white : AppTheme.slateDark,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Prenez un rendez-vous pour consulter un médecin',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                          fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
               
               const SizedBox(height: 24),
               
@@ -282,12 +349,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
                 ..._appointments.asMap().entries.map((entry) {
                   final index = entry.key;
                   final app = entry.value;
+                  final status = app['status'] ?? 'pending';
                   return _buildHistoryCard(
                     context: context,
-                    doctor: 'Dr. ${app['doctorId'] ?? 'Médecin'}', // In reality, fetch doctor name
-                    department: 'Consultation',
+                    doctor: app['doctorId'] != null ? 'Dr. ${app['doctorId']}' : 'Médecin',
+                    department: app['reason']?.isNotEmpty == true ? app['reason'] : 'Consultation',
                     date: '${app['date']} à ${app['startTime']}',
-                    status: app['status'] == 'pending' ? 'En attente' : 'Confirmé',
+                    status: _getStatusLabel(status),
+                    statusColor: _getStatusColor(status),
                     isDark: isDark,
                     delay: index,
                   );
@@ -300,12 +369,154 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
     );
   }
 
+  Widget _buildNextAppointmentCard(bool isDark) {
+    final app = _nextAppointment!;
+    final status = app['status'] ?? 'pending';
+    final isConfirmed = status == 'confirmed';
+    final doctorName = app['doctorId'] != null ? 'Dr. ${app['doctorId']}' : 'Médecin';
+    final reason = app['reason']?.isNotEmpty == true ? app['reason'] : 'Consultation';
+    final dateStr = _formatDateDisplay(app['date'] ?? '');
+    final timeStr = app['startTime'] ?? '';
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: (isConfirmed ? AppTheme.primaryTeal : const Color(0xFFF59E0B)).withOpacity(isDark ? 0.2 : 0.3),
+            blurRadius: 24,
+            spreadRadius: -6,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isConfirmed
+                      ? [const Color(0xFF0D9488), const Color(0xFF14B8A6)]
+                      : [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          isConfirmed ? Icons.event_available : Icons.event_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'PROCHAIN RENDEZ-VOUS',
+                        style: TextStyle(
+                          color: Colors.white, 
+                          fontWeight: FontWeight.w700, 
+                          letterSpacing: 0.5,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _getStatusLabel(status),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    doctorName,
+                    style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    reason,
+                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today_rounded, color: Colors.white.withOpacity(0.9), size: 18),
+                            const SizedBox(width: 8),
+                            Text(dateStr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time_rounded, color: Colors.white.withOpacity(0.9), size: 18),
+                            const SizedBox(width: 8),
+                            Text(timeStr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Decorative circle
+            Positioned(
+              top: -30,
+              right: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHistoryCard({
     required BuildContext context,
     required String doctor,
     required String department,
     required String date,
     required String status,
+    required Color statusColor,
     required bool isDark,
     required int delay,
   }) {
@@ -402,14 +613,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.success.withOpacity(0.1),
+                color: statusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 status,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11, 
-                  color: AppTheme.success,
+                  color: statusColor,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -420,3 +631,4 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
     ));
   }
 }
+

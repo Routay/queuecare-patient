@@ -543,92 +543,89 @@ class _PharmacyScreenState extends State<PharmacyScreen> with TickerProviderStat
             ),
           ),
           
-          // Map (Only visible in Pharmacies tab)
+          // Map (Only visible in Pharmacies tab) — compact fixed height
           if (_selectedTab == 1)
-            Expanded(
-              flex: 3,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                      blurRadius: 20,
-                      spreadRadius: -6,
-                      offset: const Offset(0, 6),
+            Container(
+              height: 180,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                    blurRadius: 20,
+                    spreadRadius: -6,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: _userLocation,
+                    initialZoom: 13.0,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.queuecare.patient',
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: FlutterMap(
-                    options: MapOptions(
-                      initialCenter: _userLocation,
-                      initialZoom: 13.0,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.queuecare.patient',
+                    if (_hasLocation)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _userLocation,
+                            width: 40,
+                            height: 40,
+                            child: const Icon(Icons.my_location, color: Colors.blue, size: 24),
+                          ),
+                        ]
                       ),
-                      if (_hasLocation)
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: _userLocation,
-                              width: 40,
-                              height: 40,
-                              child: const Icon(Icons.my_location, color: Colors.blue, size: 24),
-                            ),
-                          ]
-                        ),
-                      if (!_isLoading && _pharmacies.isNotEmpty)
-                        MarkerLayer(
-                          markers: _pharmacies.map((p) => Marker(
-                            point: LatLng(p['latitude'], p['longitude']),
-                            width: 44,
-                            height: 44,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => PharmacyDetailScreen(pharmacy: p)),
-                                );
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: AppTheme.success,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.success.withOpacity(0.4),
-                                      blurRadius: 12,
-                                      spreadRadius: -2,
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(8),
-                                child: const Icon(
-                                  Icons.local_pharmacy,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
+                    if (!_isLoading && _pharmacies.isNotEmpty)
+                      MarkerLayer(
+                        markers: _pharmacies.map((p) => Marker(
+                          point: LatLng(p['latitude'], p['longitude']),
+                          width: 44,
+                          height: 44,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => PharmacyDetailScreen(pharmacy: p)),
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppTheme.success,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.success.withOpacity(0.4),
+                                    blurRadius: 12,
+                                    spreadRadius: -2,
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: const Icon(
+                                Icons.local_pharmacy,
+                                color: Colors.white,
+                                size: 20,
                               ),
                             ),
-                          )).toList(),
-                        ),
-                    ],
-                  ),
+                          ),
+                        )).toList(),
+                      ),
+                  ],
                 ),
               ),
             ),
             
-          if (_selectedTab == 1) const SizedBox(height: 16),
+          if (_selectedTab == 1) const SizedBox(height: 12),
           
-          // Lists Area
+          // Lists Area — takes all remaining space
           Expanded(
-            flex: _selectedTab == 1 ? 2 : 5, // Take more space when map is hidden
             child: _isLoading 
               ? _buildShimmerLoading(isDark)
               : _error != null

@@ -87,25 +87,54 @@ class _QueueBookingScreenState extends State<QueueBookingScreen> {
       if (mounted) {
         setState(() {
           final data = response.data;
+          List<dynamic> apiDeps = [];
           if (data is Map<String, dynamic> && data.containsKey('data')) {
-            _departments = data['data'];
+            apiDeps = data['data'];
           } else if (data is List) {
-            _departments = data;
-          } else {
-            _departments = [];
+            apiDeps = data;
           }
-          // Fallback: utiliser les départements par défaut si l'API retourne une liste vide
-          if (_departments.isEmpty) {
-            _departments = List<Map<String, dynamic>>.from(_defaultDepartments);
+          
+          // Initialiser avec les départements par défaut à 0 en attente
+          List<Map<String, dynamic>> mergedDeps = _defaultDepartments.map((d) {
+            return {
+              'id': d['id'],
+              'name': d['name'],
+              'waitingCount': 0, // Réinitialise le compteur statique
+            };
+          }).toList();
+          
+          // Mettre à jour avec les vraies données de l'API
+          for (var apiDep in apiDeps) {
+            final name = apiDep['name'];
+            final count = apiDep['waitingCount'] ?? 0;
+            
+            final index = mergedDeps.indexWhere((d) => d['name'] == name);
+            if (index != -1) {
+              mergedDeps[index]['waitingCount'] = count;
+            } else {
+              mergedDeps.add({
+                'id': 'dept_${mergedDeps.length + 1}',
+                'name': name,
+                'waitingCount': count,
+              });
+            }
           }
+          
+          _departments = mergedDeps;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          // Fallback en cas d'erreur: utiliser les départements par défaut
-          _departments = List<Map<String, dynamic>>.from(_defaultDepartments);
+          // En cas d'erreur réseau, afficher 0 au lieu des fausses valeurs hardcodées
+          _departments = _defaultDepartments.map((d) {
+            return {
+              'id': d['id'],
+              'name': d['name'],
+              'waitingCount': 0,
+            };
+          }).toList();
           _error = null;
           _isLoading = false;
         });
