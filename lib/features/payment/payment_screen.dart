@@ -137,9 +137,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 else
                   Column(
                     children: [
-                      _buildOperatorCard('Wave', const Color(0xFF1DB3EB), 'assets/images/wave_logo.png', isDark),
+                      _buildOperatorCard(
+                        'Wave', 
+                        const Color(0xFF1DB3EB), 
+                        const Text('W', style: TextStyle(color: Color(0xFF1DB3EB), fontSize: 32, fontWeight: FontWeight.w900)), 
+                        isDark
+                      ),
                       const SizedBox(height: 16),
-                      _buildOperatorCard('Orange Money', const Color(0xFFFF6600), 'assets/images/orange_money_logo.png', isDark),
+                      _buildOperatorCard(
+                        'Orange Money', 
+                        const Color(0xFFFF6600), 
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6600),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ), 
+                        isDark
+                      ),
                     ],
                   ),
               ],
@@ -150,7 +167,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildOperatorCard(String name, Color color, String imagePath, bool isDark) {
+  Widget _buildOperatorCard(String name, Color color, Widget iconWidget, bool isDark) {
     return GestureDetector(
       onTap: () => _processPayment(name),
       child: Container(
@@ -172,9 +189,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Container(
               width: 56,
               height: 56,
-              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Image.asset(imagePath, fit: BoxFit.contain),
+              child: Center(child: iconWidget),
             ),
             const SizedBox(width: 16),
             Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
